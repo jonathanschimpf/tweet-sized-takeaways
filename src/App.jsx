@@ -10,14 +10,19 @@ import {
   Spinner,
 } from "react-bootstrap";
 import "./App.css";
+
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCopy } from "@fortawesome/free-solid-svg-icons";
+import { faTwitter } from "@fortawesome/free-brands-svg-icons";
+import { library } from "@fortawesome/fontawesome-svg-core";
+library.add(faCopy, faTwitter);
 
 function App() {
   const [htmlInput, setHtmlInput] = useState("");
   const [summary, setSummary] = useState("");
   const [ogImage, setOgImage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const handleSummarize = async () => {
     setLoading(true);
@@ -27,7 +32,7 @@ function App() {
       const response = await fetch("http://localhost:8000/summarize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html: htmlInput }),
+        body: JSON.stringify({ url: htmlInput }), // ✅ FIXED KEY
       });
 
       const data = await response.json();
@@ -44,7 +49,11 @@ function App() {
   };
 
   const handleCopy = () => {
-    if (summary) navigator.clipboard.writeText(summary);
+    if (summary) {
+      navigator.clipboard.writeText(summary);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -101,15 +110,18 @@ function App() {
           {summary && (
             <Card className="mt-4 summary-card">
               <Card.Body className="position-relative">
-                <Card.Title>📝 280-Character Summary</Card.Title>
+                <Card.Title>📝 280-Character (or less) Takeaway</Card.Title>
                 <Card.Text className="position-relative" style={{ zIndex: 1 }}>
                   {summary}
                 </Card.Text>
-                <button className="icon-copy-btn" onClick={handleCopy}>
-                  <FontAwesomeIcon icon={faCopy} />
+                <button
+                  className={`icon-copy-btn${copied ? " copied" : ""}`}
+                  onClick={handleCopy}
+                >
+                  <FontAwesomeIcon icon={copied ? faTwitter : faCopy} />
                 </button>
                 <img
-                  src="/images/twitter-death-on-white.png"
+                  src="/images/twitter-died-jetblack.png"
                   alt="Dead Twitter bird"
                   className="summary-background"
                 />

@@ -6,6 +6,9 @@
   display: flex;
   justify-content: center;
 }
+.card-title.h5 {
+  color: #000000 !important;
+}
 
 .container {
   width: 100%;
@@ -23,6 +26,7 @@
   font-weight: bold;
   font-size: 1.75rem;
   white-space: nowrap;
+  color: #000000 !important;
   margin-bottom: 0.5rem;
   max-width: 640px;
   margin-left: auto;
@@ -58,13 +62,18 @@
   box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.05);
 }
 
+.summary-card .card-text {
+  padding-bottom: 1.5rem; /* ENOUGH SPACE TO CLEAR BIRD FEET */
+  position: relative; /* ENSURES THE BIRD POSITIONS RELATIVE TO THIS */
+  z-index: 1; /* SO TEXT SITS ABOVE CARD BACKGROUND */
+}
+
 /* Background Bird */
 .summary-background {
   position: absolute;
-  bottom: 0.5rem;
+  bottom: 0.25rem;
   right: 0.5rem;
   width: 64px;
-  opacity: 0.15;
   pointer-events: none;
   z-index: 0;
 }
@@ -72,18 +81,23 @@
 /* Icon Copy Button (actual icon is button) */
 .icon-copy-btn {
   position: absolute;
-  top: 0.75rem;
+  top: 0.25rem; /* Tighter top alignment */
   right: 0.75rem;
   background: none;
   border: none;
   font-size: 1.25rem;
-  opacity: 0.7;
+  color: #212529;
   cursor: pointer;
   z-index: 2;
+  transition: color 0.2s ease;
 }
+
 .icon-copy-btn:hover {
-  opacity: 1;
-  transition: opacity 0.2s;
+  color: #1da1f2; /* TWITTER BLUE ON HOVER (for visual affordance) */
+}
+
+.icon-copy-btn.copied {
+  color: #1da1f2 !important; /* FORCED BLUE WHILE COPIED */
 }
 
 /* Text Inputs */
@@ -98,4 +112,11 @@ textarea {
   border-radius: 9999px;
   padding-left: 1.5rem;
   padding-right: 1.5rem;
+}
+
+@media (max-width: 480px) {
+  .icon-copy-btn {
+    top: 1.95rem; /* PUSH BELOW THE TITLE */
+    right: 0.5rem;
+  }
 }

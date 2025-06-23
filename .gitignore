@@ -1,4 +1,4 @@
-# Logs
+# LOGS
 logs
 *.log
 npm-debug.log*
@@ -7,25 +7,25 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Node modules + builds
+# NODE MODULES & BUILDS
 node_modules/
 dist/
 dist-ssr/
 *.local
 
-# Python cruft
+# PYTHON CRUFT
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
 
-# Secrets
+# $ECRET$
 .env
 back-end/.env
 
-# System files
+# SYSTEM FILES
 .DS_Store
 
-# Editor files
+# EDITOR FILES
 .idea/
 .vscode/
