@@ -106,12 +106,22 @@ textarea {
   resize: none;
 }
 
-/* Button */
+/* Default Button */
 .twitterblue {
   background-color: #1da1f2;
+  border: 2px solid transparent;
+  color: white;
   border-radius: 9999px;
   padding-left: 1.5rem;
   padding-right: 1.5rem;
+  transition: all 0.2s ease;
+}
+
+/* On Active/Loading */
+.twitterblue:disabled {
+  background-color: white;
+  border: 2px solid #1da1f2;
+  color: #1da1f2;
 }
 
 @media (max-width: 480px) {
@@ -119,4 +129,47 @@ textarea {
     top: 1.95rem; /* PUSH BELOW THE TITLE */
     right: 0.5rem;
   }
+}
+
+/* ---- EVER-PRESENT NAV ROUTES CENTERED ---- */
+.nav-links {
+  margin-top: -3.66rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.nav-link-item {
+  color: #212529;
+  text-decoration: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  padding: 0 0.5rem; /* GIVES ENOUGH WIDTH FOR UNDERLINE TO APPEAR */
+}
+
+.nav-link-item.active {
+  color: #1da1f2;
+}
+
+.nav-link-item.active::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #1da1f2;
+  border-radius: 9999px;
+}
+
+.nav-link-item:hover {
+  color: #1da1f2;
+}
+
+.nav-separator {
+  color: #6c757d;
 }

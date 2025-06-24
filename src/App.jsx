@@ -17,12 +17,17 @@ import { faTwitter } from "@fortawesome/free-brands-svg-icons";
 import { library } from "@fortawesome/fontawesome-svg-core";
 library.add(faCopy, faTwitter);
 
+// EVER-PRESENT NAV ROUTING
+import { Link, useLocation } from "react-router-dom";
+
 function App() {
   const [htmlInput, setHtmlInput] = useState("");
   const [summary, setSummary] = useState("");
   const [ogImage, setOgImage] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const location = useLocation();
 
   const handleSummarize = async () => {
     setLoading(true);
@@ -32,7 +37,7 @@ function App() {
       const response = await fetch("http://localhost:8000/summarize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: htmlInput }), // ✅ FIXED KEY
+        body: JSON.stringify({ url: htmlInput }),
       });
 
       const data = await response.json();
@@ -67,8 +72,10 @@ function App() {
     <Container className="container">
       <Row className="justify-content-center">
         <Col xs={12} className="text-center px-3">
+          {/* APP TITLE */}
           <h1 className="title">Tweet-Sized Takeaways</h1>
 
+          {/* INPUT */}
           <Form onKeyDown={handleKeyPress}>
             <Form.Group className="d-flex justify-content-center mb-3">
               <Form.Control
@@ -88,7 +95,11 @@ function App() {
                 disabled={loading}
               >
                 {loading ? (
-                  <Spinner animation="border" size="sm" />
+                  <Spinner
+                    animation="border"
+                    size="sm"
+                    style={{ color: "#1da1f2", borderWidth: "0.15em" }}
+                  />
                 ) : (
                   "Summarize"
                 )}
@@ -96,6 +107,7 @@ function App() {
             </div>
           </Form>
 
+          {/* OG IMAGE */}
           {ogImage && (
             <div className="og-image-container mb-3">
               <img
@@ -107,6 +119,7 @@ function App() {
             </div>
           )}
 
+          {/* SUMMARY CARD */}
           {summary && (
             <Card className="mt-4 summary-card">
               <Card.Body className="position-relative">
