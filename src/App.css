@@ -1,13 +1,10 @@
-/* Layout */
+/* LAYOUT! */
 #root {
   width: 100%;
   margin: 0 auto;
   padding: 2rem;
   display: flex;
   justify-content: center;
-}
-.card-title.h5 {
-  color: #000000 !important;
 }
 
 .container {
@@ -21,19 +18,21 @@
   align-items: center;
 }
 
-/* Heading */
+/* HEADINGS */
 .title {
   font-weight: bold;
   font-size: 1.75rem;
   white-space: nowrap;
-  color: #000000 !important;
-  margin-bottom: 0.5rem;
+  margin: 0 auto 0.5rem;
   max-width: 640px;
-  margin-left: auto;
-  margin-right: auto;
+  color: inherit; /* FOLLOWS THEME */
 }
 
-/* Input Field */
+.card-title.h5 {
+  color: #000000;
+}
+
+/* INPUTS */
 .custom-input {
   width: 100%;
   max-width: 640px;
@@ -41,34 +40,42 @@
   margin: 0 auto;
 }
 
-/* OG Image */
+input,
+textarea {
+  resize: none;
+}
+
+/* OG IMAGE */
 .og-image {
   width: 100%;
   max-width: 640px;
   border-radius: 8px;
-  margin-top: 1rem;
-  margin-bottom: 1rem;
+  margin: 1rem 0;
   object-fit: cover;
   display: block;
 }
 
-/* Summary Box */
+/* TWEET-SIZED TAKEAWAYS */
 .summary-card {
   max-width: 640px;
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0 auto;
   position: relative;
   overflow: hidden;
   box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.05);
 }
 
 .summary-card .card-text {
-  padding-bottom: 1.5rem; /* ENOUGH SPACE TO CLEAR BIRD FEET */
-  position: relative; /* ENSURES THE BIRD POSITIONS RELATIVE TO THIS */
-  z-index: 1; /* SO TEXT SITS ABOVE CARD BACKGROUND */
+  padding-bottom: 1.5rem; /* SPACE FOR FOOTED BIRD */
+  position: relative;
+  z-index: 1;
 }
 
-/* Background Bird */
+/* TWITTER BLUE 280 CHARACTER (OR LESS) TAKEAWAY IN DARK MODE */
+body[data-theme="dark"] .summary-card .card-title {
+  color: #1da1f2;
+}
+
+/* BIRD BACKGROUND */
 .summary-background {
   position: absolute;
   bottom: 0.25rem;
@@ -78,10 +85,10 @@
   z-index: 0;
 }
 
-/* Icon Copy Button (actual icon is button) */
+/* COPY ICON */
 .icon-copy-btn {
   position: absolute;
-  top: 0.25rem; /* Tighter top alignment */
+  top: 0.25rem;
   right: 0.75rem;
   background: none;
   border: none;
@@ -92,46 +99,46 @@
   transition: color 0.2s ease;
 }
 
-.icon-copy-btn:hover {
-  color: #1da1f2; /* TWITTER BLUE ON HOVER (for visual affordance) */
-}
-
+.icon-copy-btn:hover,
 .icon-copy-btn.copied {
-  color: #1da1f2 !important; /* FORCED BLUE WHILE COPIED */
+  color: #1da1f2 !important;
 }
 
-/* Text Inputs */
-input,
-textarea {
-  resize: none;
-}
-
-/* Default Button */
+/* SUMMARIZE BUTTON */
 .twitterblue {
   background-color: #1da1f2;
-  border: 2px solid transparent;
-  color: white;
+  color: #ffffff;
+  border: 2px solid #1da1f2;
   border-radius: 9999px;
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
+  padding: 0 1.5rem;
+  height: 36px;
+  font-weight: 500;
   transition: all 0.2s ease;
+  cursor: pointer;
 }
 
-/* On Active/Loading */
-.twitterblue:disabled {
-  background-color: white;
-  border: 2px solid #1da1f2;
+.twitterblue:hover,
+.twitterblue:active {
+  background-color: transparent;
   color: #1da1f2;
 }
 
+.twitterblue:disabled {
+  background-color: #a8d8f8;
+  border: 2px solid #a8d8f8;
+  color: #ffffff;
+  cursor: not-allowed;
+}
+
+/* RESPONSIVE — MOBILE FIRST */
 @media (max-width: 480px) {
   .icon-copy-btn {
-    top: 1.95rem; /* PUSH BELOW THE TITLE */
+    top: 1.95rem;
     right: 0.5rem;
   }
 }
 
-/* ---- EVER-PRESENT NAV ROUTES CENTERED ---- */
+/* NAVIGATION */
 .nav-links {
   margin-top: -3.66rem;
   margin-bottom: 1.25rem;
@@ -141,14 +148,14 @@ textarea {
 }
 
 .nav-link-item {
-  color: #212529;
   text-decoration: none;
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 1.25rem;
-  padding: 0 0.5rem; /* GIVES ENOUGH WIDTH FOR UNDERLINE TO APPEAR */
+  padding: 0 0.5rem;
+  color: #212529;
 }
 
 .nav-link-item.active {
@@ -172,4 +179,134 @@ textarea {
 
 .nav-separator {
   color: #6c757d;
+}
+
+/* THEME TOGGLE ICON (EMOJI ONLY) */
+.theme-toggle-icon-btn {
+  background-color: transparent;
+  border: none;
+  font-size: 1.125rem; /* SLIGHTLY SMALLER */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: none;
+  padding: 0.2rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  width: 36px;
+  border-radius: 6px;
+}
+
+/* SLIGHT SHADOW TUCK WHEN PRESSED */
+.theme-toggle-icon-btn:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* LIGHT MODE: SHADOW FOR VISIBILITY */
+body[data-theme="light"] .theme-toggle-icon-btn {
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+}
+
+/* --- DARK MODE OVERRIDES --- */
+body[data-theme="dark"] .custom-input,
+body[data-theme="dark"] input[type="url"],
+body[data-theme="dark"] textarea {
+  background-color: #1e1e1e;
+  color: #ffffff;
+  border: 1px solid #333333;
+}
+
+body[data-theme="dark"] input::placeholder,
+body[data-theme="dark"] textarea::placeholder {
+  color: #aaaaaa;
+}
+
+body[data-theme="dark"] .summary-card {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+body[data-theme="dark"] .card-title.h5 {
+  color: #ffffff;
+}
+
+body[data-theme="dark"] .nav-link-item {
+  color: #6c757d;
+}
+
+body[data-theme="dark"] .nav-link-item.active {
+  color: #1da1f2;
+}
+
+body[data-theme="dark"] .nav-link-item:hover {
+  color: #1da1f2;
+}
+
+body[data-theme="dark"] .nav-separator {
+  color: #6c757d;
+}
+
+body[data-theme="dark"] .fa-twitter {
+  color: #1da1f2;
+}
+
+.nav-link-item svg {
+  color: inherit;
+}
+
+.nav-link-item.active svg {
+  color: #1da1f2;
+}
+
+body[data-theme="dark"] h2.about-title {
+  color: #1da1f2;
+}
+
+body[data-theme="dark"] .nav-link-item:not(.active) svg {
+  color: #6c757d !important;
+}
+
+body[data-theme="dark"] .summary-card .card-title.h5 {
+  color: #1da1f2 !important;
+}
+
+body[data-theme="dark"] .icon-copy-btn {
+  color: #aaaaaa;
+}
+
+body[data-theme="dark"] .icon-copy-btn:hover,
+body[data-theme="dark"] .icon-copy-btn.copied {
+  color: #1da1f2 !important;
+}
+
+/* ACCESSIBILITY RING — TWITTER BLUE, THINNER */
+:focus-visible {
+  outline: 2px solid #1da1f2;
+  outline-offset: 2px;
+  border-radius: 0.5px;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a:visited {
+  color: inherit;
+}
+
+/* FORCE BORDER TO BE TWITTER BLUE */
+button.twitterblue {
+  border-color: #1da1f2 !important; /* BOOSTS SPECIFICITY */
+  box-shadow: none;
+}
+
+/* FORCE SPINNER FIX — TRANSPARENT BACKGROUND ON LOADING */
+button.twitterblue:disabled {
+  background-color: transparent !important;
+  border-color: #1da1f2 !important;
+  color: #1da1f2 !important;
 }

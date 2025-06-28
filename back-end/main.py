@@ -1,18 +1,14 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from dotenv import load_dotenv
+import requests
 from bs4 import BeautifulSoup
-import requests, os, re, hashlib
-
-load_dotenv()
-HF_API_TOKEN = os.getenv("HF_ACCESS_TOKEN")
-HF_API_URL = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
-HF_HEADERS = {"Authorization": f"Bearer {HF_API_TOKEN}"}
+import re
+import os
 
 app = FastAPI()
 
-# CORS FOR LOCAL DEV
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,77 +16,86 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# URL BODY INPUT
-class URLInput(BaseModel):
-    url: str
-
+# Blacklist
 # /////--- BLACKLIST ----////
 BLACKLISTED_DOMAINS = ["washingtonpost.com", "nytimes.com", "bloomberg.com", "cnbc.com"]
 
-# ==== HTML EXTRACTION ====
-def extract_text_from_html(html):
-    soup = BeautifulSoup(html, "html.parser")
-    [script.decompose() for script in soup(["script", "style", "noscript"])]
-    text = soup.get_text(separator=" ", strip=True)
-    return re.sub(r"\s+", " ", text)
+# Hugging Face API
+HF_API_TOKEN = os.getenv("HF_API_TOKEN")
+HF_API_URL = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
+HEADERS = {"Authorization": f"Bearer {HF_API_TOKEN}"}
 
-# ==== OG:IMAGE HANDLER ====
-def extract_og_image(html):
-    match = re.search(r'<meta property="og:image" content="([^"]+)"', html)
-    return match.group(1) if match else None
 
-# ==== SUMMARIZE VIA HUGGINGFACE ====
-def summarize_text(text):
-    try:
-        response = requests.post(
-            HF_API_URL,
-            headers=HF_HEADERS,
-            json={"inputs": text[:4000]},  # TRIM INPUT
-            timeout=20
-        )
-        response.raise_for_status()
-        result = response.json()
-        if isinstance(result, list) and "summary_text" in result[0]:
-            return result[0]["summary_text"]
-        return "⚠️ Hugging Face returned unexpected response format."
-    except Exception as e:
-        print(f"💥 HUGGING FACE ERROR: {e}")
-        return "⚠️ Hugging Face can't seem to summarize this content."
+class URLInput(BaseModel):
+    url: str
 
-# ==== FASTAPI ENDPOINT ====
+
 @app.post("/summarize")
-def summarize(input: URLInput):
+def summarize_link(input: URLInput):
     url = input.url.strip()
     print(f"\n📥 Summarizing: {url}")
 
-    # CHECK BLACKLIST
-    for domain in BLACKLISTED_DOMAINS:
-        if domain in url:
-            print(f"🚫 BLOCKED DOMAIN: {domain}")
-            return {
-                "summary": "❌ Sorry, this source blocks access for summarization.",
-                "og_image": None,
-            }
+    # Check blacklist
+    if any(domain in url for domain in BLACKLISTED_DOMAINS):
+        print("🚫 Blacklisted domain — skipping summarization.")
+        return {"summary": "⚠️ This source can't be summarized due to restrictions.", "og_image": ""}
 
     try:
-        host = requests.utils.urlparse(url).netloc
-        print(f"🌐 Host: {host}")
+        print(f"🌐 Host: {requests.utils.urlparse(url).netloc}")
         response = requests.get(url, timeout=10)
         html = response.text
-        print("⏳ Attempt 1 to fetch content...")
     except Exception as e:
         print(f"❌ Failed to fetch page: {e}")
-        return {"summary": "❌ Could not fetch the provided URL."}
+        return {"summary": "❌ Could not fetch the provided URL.", "og_image": ""}
 
-    # TEXT + IMAGE EXTRACTION
-    text = extract_text_from_html(html)
-    print(f"📄 Text Length: {len(text)}")
-    og_image = extract_og_image(html)
+    # --- Extract og:image ---
+    soup = BeautifulSoup(html, "html.parser")
+    og_image = ""
+    og_title = ""
+    og_desc = ""
+    for tag in soup.find_all("meta"):
+        if tag.get("property") == "og:image":
+            og_image = tag.get("content")
+        elif tag.get("property") == "og:title":
+            og_title = tag.get("content")
+        elif tag.get("property") == "og:description":
+            og_desc = tag.get("content")
+
     if og_image:
         print(f"🖼️ og:image: {og_image}")
 
-    # SEND TO SUMMARIZER
-    print("🤖 Sending to Hugging Face summarizer... (Attempt 1)")
-    summary = summarize_text(text)
+    # --- Extract text content ---
+    text = extract_text(html)
+    print(f"📄 Text Length: {len(text)}")
 
-    return {"summary": summary, "og_image": og_image}
+    # --- Try Hugging Face summarization ---
+    if len(text) < 100:
+        print("⚠️ Not enough text for summarization. Falling back to OG tags.")
+        return {
+            "summary": og_desc or og_title or "⚠️ Hugging Face can't seem to summarize this content.",
+            "og_image": og_image,
+        }
+
+    payload = {"inputs": text}
+    try:
+        print("🤖 Sending to Hugging Face summarizer... (Attempt 1)")
+        hf_response = requests.post(HF_API_URL, headers=HEADERS, json=payload, timeout=20)
+        hf_response.raise_for_status()
+        summary_text = hf_response.json()[0]["summary_text"]
+        return {"summary": summary_text, "og_image": og_image}
+    except Exception as e:
+        print(f"💥 HUGGING FACE ERROR: {e}")
+        print("🧠 Falling back to og:description or og:title...")
+        return {
+            "summary": og_desc or og_title or "⚠️ Hugging Face can't seem to summarize this content.",
+            "og_image": og_image,
+        }
+
+
+def extract_text(html):
+    soup = BeautifulSoup(html, "html.parser")
+    for script in soup(["script", "style", "noscript"]):
+        script.extract()
+    text = soup.get_text(separator=" ")
+    text = re.sub(r"\s+", " ", text).strip()
+    return text

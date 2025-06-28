@@ -1,0 +1,43 @@
+/* CONNECT ICON ROW */
+.quick-connect-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+  margin-bottom: 2.5rem;
+  gap: 1.5rem; /* NATURAL GAP BETWEEN ICONS */
+}
+
+/* DEFAULT ICON STYLE */
+.quick-icon {
+  color: #000000; /* PURE BLACK IN LIGHT MODE */
+  transition: color 0.2s ease, transform 0.2s ease;
+  text-decoration: none; /* REMOVE LINK UNDERLINE */
+}
+
+/* HOVER / PRESS */
+.quick-icon:hover,
+.quick-icon:focus,
+.quick-icon:active {
+  color: #1da1f2; /* TWITTER BLUE HOVER STATE */
+  transform: scale(1.1);
+  opacity: 0.85;
+}
+
+/* DARK THEME DEFAULT */
+body[data-theme="dark"] .quick-icon {
+  color: #cccccc; /* LIGHT GRAY FOR DARK MODE */
+}
+
+/* DARK THEME HOVER */
+body[data-theme="dark"] .quick-icon:hover,
+body[data-theme="dark"] .quick-icon:focus,
+body[data-theme="dark"] .quick-icon:active {
+  color: #1da1f2;
+}
+
+/* PREVENT BROWSER'S :visited PURPLE FROM OVERRIDING COLOR */
+.quick-connect-row a:visited {
+  color: inherit;
+}
