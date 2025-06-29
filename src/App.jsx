@@ -138,7 +138,7 @@ function App() {
                 <img
                   src="/images/twitter-died-jetblack.png"
                   alt="Dead Twitter bird"
-                  className="summary-background"
+                  className="black-deadtwitterbird"
                 />
               </Card.Body>
             </Card>
