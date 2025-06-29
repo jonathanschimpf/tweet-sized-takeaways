@@ -9,6 +9,10 @@
   gap: 1.5rem; /* NATURAL GAP BETWEEN ICONS */
 }
 
+.about-title {
+  color: #1da1f2 !important;
+}
+
 /* DEFAULT ICON STYLE */
 .quick-icon {
   color: #000000; /* PURE BLACK IN LIGHT MODE */
@@ -27,7 +31,7 @@
 
 /* DARK THEME DEFAULT */
 body[data-theme="dark"] .quick-icon {
-  color: #cccccc; /* LIGHT GRAY FOR DARK MODE */
+  color: #636363; /* LIGHT GRAY FOR DARK MODE */
 }
 
 /* DARK THEME HOVER */
@@ -40,4 +44,35 @@ body[data-theme="dark"] .quick-icon:active {
 /* PREVENT BROWSER'S :visited PURPLE FROM OVERRIDING COLOR */
 .quick-connect-row a:visited {
   color: inherit;
+}
+
+/* TWITTER BLUE SIGN OFF */
+
+.twitterbluesignoff {
+  font-weight: bold;
+  color: #1da1f2 !important;
+}
+
+body[data-theme="dark"] .twitterbluesignoff {
+  color: #1da1f2 !important;
+}
+
+/* 🤗 */
+.huggingface-link {
+  display: inline-block;
+  text-decoration: none;
+  margin-bottom: 0.5rem;
+  transition: color 0.2s ease;
+}
+
+body[data-theme="dark"] .huggingface-link {
+  color: #aaaaaa;
+}
+
+body[data-theme="light"] .huggingface-link {
+  color: #444444;
+}
+
+.huggingface-link:hover {
+  color: #1da1f2; /* Twitter blue hover */
 }

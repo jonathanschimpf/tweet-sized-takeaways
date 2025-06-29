@@ -25,11 +25,13 @@
   white-space: nowrap;
   margin: 0 auto 0.5rem;
   max-width: 640px;
-  color: inherit; /* FOLLOWS THEME */
+  color: inherit;
 }
 
 .card-title.h5 {
   color: #000000;
+  font-size: 15px;
+  line-height: 1.25;
 }
 
 /* INPUTS */
@@ -38,6 +40,9 @@
   max-width: 640px;
   height: 42px;
   margin: 0 auto;
+  background-color: var(--input-bg);
+  color: var(--text-color);
+  border: 1px solid #333;
 }
 
 input,
@@ -55,27 +60,58 @@ textarea {
   display: block;
 }
 
-/* TWEET-SIZED TAKEAWAYS */
+/* SUMMARY CARD */
 .summary-card {
   max-width: 640px;
   margin: 0 auto;
   position: relative;
   overflow: hidden;
+  border: none;
+  border-radius: 12px;
+  background-color: var(--card-bg);
+  color: var(--text-color);
   box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.05);
+  padding-bottom: 3rem;
+}
+.summary-label {
+  color: #1da1f2 !important;
 }
 
-.summary-card .card-text {
-  padding-bottom: 1.5rem; /* SPACE FOR FOOTED BIRD */
-  position: relative;
-  z-index: 1;
+.summary-header {
+  font-weight: bold;
+  font-size: 1.1rem;
+  white-space: nowrap;
+  margin-bottom: 0.75rem;
+  color: var(--twitter-blue);
+  display: flex;
+  justify-content: center;
 }
 
-/* TWITTER BLUE 280 CHARACTER (OR LESS) TAKEAWAY IN DARK MODE */
-body[data-theme="dark"] .summary-card .card-title {
-  color: #1da1f2;
+.summary-text {
+  font-size: 1rem;
+  margin-bottom: 2.5rem;
+  text-align: center;
 }
 
-/* BIRD BACKGROUND */
+.icon-copy-btn {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  z-index: 2;
+  color: #636363;
+  transition: color 0.2s ease;
+}
+
+.icon-copy-btn:hover,
+.icon-copy-btn.copied {
+  color: #1da1f2 !important;
+}
+
+/* BACKGROUND BIRD */
 .summary-background {
   position: absolute;
   bottom: 0.25rem;
@@ -85,26 +121,7 @@ body[data-theme="dark"] .summary-card .card-title {
   z-index: 0;
 }
 
-/* COPY ICON */
-.icon-copy-btn {
-  position: absolute;
-  top: 0.25rem;
-  right: 0.75rem;
-  background: none;
-  border: none;
-  font-size: 1.25rem;
-  color: #212529;
-  cursor: pointer;
-  z-index: 2;
-  transition: color 0.2s ease;
-}
-
-.icon-copy-btn:hover,
-.icon-copy-btn.copied {
-  color: #1da1f2 !important;
-}
-
-/* SUMMARIZE BUTTON */
+/* BUTTON — SUMMARIZE */
 .twitterblue {
   background-color: #1da1f2;
   color: #ffffff;
@@ -128,14 +145,6 @@ body[data-theme="dark"] .summary-card .card-title {
   border: 2px solid #a8d8f8;
   color: #ffffff;
   cursor: not-allowed;
-}
-
-/* RESPONSIVE — MOBILE FIRST */
-@media (max-width: 480px) {
-  .icon-copy-btn {
-    top: 1.95rem;
-    right: 0.5rem;
-  }
 }
 
 /* NAVIGATION */
@@ -181,11 +190,16 @@ body[data-theme="dark"] .summary-card .card-title {
   color: #6c757d;
 }
 
-/* THEME TOGGLE ICON (EMOJI ONLY) */
+/* ^ FORCE HOVER STATE TO BE BLUE EVEN WHEN INACTIVE */
+.nav-link-item:hover svg {
+  color: #1da1f2 !important;
+}
+
+/* THEME TOGGLE ICON */
 .theme-toggle-icon-btn {
   background-color: transparent;
   border: none;
-  font-size: 1.125rem; /* SLIGHTLY SMALLER */
+  font-size: 1.125rem;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: none;
@@ -199,18 +213,12 @@ body[data-theme="dark"] .summary-card .card-title {
   border-radius: 6px;
 }
 
-/* SLIGHT SHADOW TUCK WHEN PRESSED */
 .theme-toggle-icon-btn:active {
   transform: translateY(1px);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25);
 }
 
-/* LIGHT MODE: SHADOW FOR VISIBILITY */
-body[data-theme="light"] .theme-toggle-icon-btn {
-  text-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
-}
-
-/* --- DARK MODE OVERRIDES --- */
+/* DARK THEME OVERRIDES */
 body[data-theme="dark"] .custom-input,
 body[data-theme="dark"] input[type="url"],
 body[data-theme="dark"] textarea {
@@ -234,7 +242,7 @@ body[data-theme="dark"] .card-title.h5 {
 }
 
 body[data-theme="dark"] .nav-link-item {
-  color: #6c757d;
+  color: #636363;
 }
 
 body[data-theme="dark"] .nav-link-item.active {
@@ -245,28 +253,12 @@ body[data-theme="dark"] .nav-link-item:hover {
   color: #1da1f2;
 }
 
-body[data-theme="dark"] .nav-separator {
-  color: #6c757d;
-}
-
 body[data-theme="dark"] .fa-twitter {
+  color: #636363;
+}
+
+body[data-theme="dark"] .nav-link-item.active .fa-twitter {
   color: #1da1f2;
-}
-
-.nav-link-item svg {
-  color: inherit;
-}
-
-.nav-link-item.active svg {
-  color: #1da1f2;
-}
-
-body[data-theme="dark"] h2.about-title {
-  color: #1da1f2;
-}
-
-body[data-theme="dark"] .nav-link-item:not(.active) svg {
-  color: #6c757d !important;
 }
 
 body[data-theme="dark"] .summary-card .card-title.h5 {
@@ -274,7 +266,7 @@ body[data-theme="dark"] .summary-card .card-title.h5 {
 }
 
 body[data-theme="dark"] .icon-copy-btn {
-  color: #aaaaaa;
+  color: #636363;
 }
 
 body[data-theme="dark"] .icon-copy-btn:hover,
@@ -282,11 +274,19 @@ body[data-theme="dark"] .icon-copy-btn.copied {
   color: #1da1f2 !important;
 }
 
-/* ACCESSIBILITY RING — TWITTER BLUE, THINNER */
+body[data-theme="dark"] .quick-icon {
+  color: #636363;
+}
+
+body[data-theme="light"] .quick-icon {
+  color: #212529;
+}
+
+/* ACCESSIBILITY RING */
 :focus-visible {
-  outline: 2px solid #1da1f2;
+  outline: 2px solid #1da1f2 !important;
   outline-offset: 2px;
-  border-radius: 0.5px;
+  border-radius: 4px;
 }
 
 a {
@@ -300,13 +300,17 @@ a:visited {
 
 /* FORCE BORDER TO BE TWITTER BLUE */
 button.twitterblue {
-  border-color: #1da1f2 !important; /* BOOSTS SPECIFICITY */
+  border-color: #1da1f2 !important;
   box-shadow: none;
 }
 
-/* FORCE SPINNER FIX — TRANSPARENT BACKGROUND ON LOADING */
 button.twitterblue:disabled {
   background-color: transparent !important;
   border-color: #1da1f2 !important;
+  color: #1da1f2 !important;
+}
+
+/* COPY BUTTON — TWITTER BIRD */
+.icon-copy-btn .fa-twitter {
   color: #1da1f2 !important;
 }

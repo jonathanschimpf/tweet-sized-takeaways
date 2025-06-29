@@ -122,11 +122,13 @@ function App() {
           {/* SUMMARY CARD */}
           {summary && (
             <Card className="mt-4 summary-card">
-              <Card.Body className="position-relative">
-                <Card.Title>📝 280-Character (or less) Takeaway</Card.Title>
-                <Card.Text className="position-relative" style={{ zIndex: 1 }}>
-                  {summary}
-                </Card.Text>
+              <Card.Body className="summary-body">
+                <div className="summary-header">
+                  <span className="summary-label">
+                    📝 280-Character (or less) Takeaway
+                  </span>
+                </div>
+                <Card.Text className="summary-text">{summary}</Card.Text>
                 <button
                   className={`icon-copy-btn${copied ? " copied" : ""}`}
                   onClick={handleCopy}

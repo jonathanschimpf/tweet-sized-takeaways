@@ -1,3 +1,4 @@
+/* ─── WRAPPER ───────────────────────────── */
 .quick-connects {
   display: flex;
   justify-content: center;
@@ -8,42 +9,14 @@
   position: relative;
 }
 
-/* BASE ICON STYLE */
+/* ─── BASE ICON STYLE ───────────────────── */
 .quick-icon {
   position: relative;
   color: #000; /* LIGHT MODE: PURE BLACK */
-  transition: color 0.2s ease, transform 0.2s ease;
   text-decoration: none;
+  transition: color 0.2s ease, transform 0.2s ease;
 }
 
-/* SMOOTH TRANSITION ON SVG TOO */
-.quick-icon svg {
-  transition: color 0.2s ease, fill 0.2s ease;
-}
-
-/* TOOLTIP STYLE */
-.quick-icon .tooltip {
-  position: absolute;
-  bottom: -2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  background: none;
-  color: #1da1f2;
-  font-size: 0.8rem;
-  font-weight: 600;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
-}
-
-/* SHOW TOOLTIP ON HOVER */
-.quick-icon:hover .tooltip,
-.quick-icon:focus .tooltip {
-  opacity: 1;
-}
-
-/* ICON HOVER EFFECT */
 .quick-icon:hover,
 .quick-icon:focus,
 .quick-icon:active {
@@ -51,15 +24,43 @@
   transform: scale(1.1);
 }
 
-/* DARK MODE BASE COLOR */
+/* ─── SVG TRANSITIONS ───────────────────── */
+.quick-icon svg {
+  transition: color 0.2s ease, fill 0.2s ease;
+}
+
+/* ─── TOOLTIP STYLE ─────────────────────── */
+.quick-icon .tooltip {
+  position: absolute;
+  bottom: -2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: none;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1da1f2;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.quick-icon:hover .tooltip,
+.quick-icon:focus .tooltip {
+  opacity: 1;
+}
+
+/* ─── DARK MODE OVERRIDES ───────────────── */
 body[data-theme="dark"] .quick-icon {
   color: #6c757d; /* MATCH NAV */
 }
 
-/* DARK MODE HOVER COLOR FIX */
 body[data-theme="dark"] .quick-icon:hover svg,
 body[data-theme="dark"] .quick-icon:focus svg,
-body[data-theme="dark"] .quick-icon:active svg {
+body[data-theme="dark"] .quick-icon:active svg,
+body[data-theme="light"] .quick-icon:hover svg,
+body[data-theme="light"] .quick-icon:focus svg,
+body[data-theme="light"] .quick-icon:active svg {
   color: #1da1f2;
   fill: #1da1f2;
 }

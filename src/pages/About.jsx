@@ -1,5 +1,6 @@
 // src/pages/About.jsx
 import QuickConnects from "../components/QuickConnects";
+import "./About.css";
 
 export default function About() {
   return (
@@ -13,13 +14,34 @@ export default function About() {
         through Hugging Face's Inference API. This approach prioritizes
         transparency and accessibility over closed-source, pay-per-token
         alternatives — keeping things open and remixable. Built with FastAPI on
-        the backend and Vite + React on the frontend, the app supports a
+        the back-end and Vite + React on the front-end, the app supports a
         responsive dark/light mode toggle for a smoother user experience across
         devices. It's deployed seamlessly on Netlify for fast, global access.
-        <br />
-        <br />
+      </p>
+
+      <p className="twitterbluesignoff">
         Crafted by Jonathan Schimpf in 2025 — 2 years after Twitter died.
       </p>
+      <br />
+
+      <a
+        href="https://huggingface.co/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="huggingface-link quick-icon"
+      >
+        <span
+          role="img"
+          aria-label="Hugging Face"
+          style={{ fontSize: "1.5rem" }}
+        >
+          🤗
+        </span>
+        <span className="tooltip">Hugging Face</span>
+      </a>
+
+      <br />
+      <br />
 
       <QuickConnects />
     </div>
