@@ -8,15 +8,15 @@ export default function About() {
       <h2 className="about-title">About Tweet-Sized Takeaways</h2>
       <p className="mt-3">
         This project distills the internet into 280-character insights. It
-        scrapes, parses, and summarizes web content to generate concise,
-        tweet-ready overviews. At its core, Tweet-Sized Takeaways uses the
-        open-source 'facebook/bart-large-cnn' summarization model, hosted
-        through Hugging Face's Inference API. This approach prioritizes
-        transparency and accessibility over closed-source, pay-per-token
-        alternatives — keeping things open and remixable. Built with FastAPI on
-        the back-end and Vite + React on the front-end, the app supports a
-        responsive dark/light mode toggle for a smoother user experience across
-        devices. It's deployed seamlessly on Netlify for fast, global access.
+        scrapes, parses, and summarizes web content down to short overviews. At
+        its core, Tweet-Sized Takeaways uses the open-source
+        'facebook/bart-large-cnn' summarization model, hosted through Hugging
+        Face's Inference API. This approach prioritizes transparency and
+        accessibility over closed-source, pay-per-token alternatives — keeping
+        things open and remixable. Built with FastAPI on the back-end and Vite +
+        React on the front-end, the app supports a responsive dark/light mode
+        toggle for a smoother user experience across devices. It's deployed
+        seamlessly on Netlify for fast, global access.
       </p>
 
       <p className="twitterbluesignoff">
