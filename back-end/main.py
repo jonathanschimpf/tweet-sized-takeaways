@@ -20,8 +20,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- STATIC FILES ---
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# --- [BYE-BYE STATIC LET'S GO PUBLIC] ---
 
 # --- ENV VARS ---
 load_dotenv()
