@@ -12,10 +12,10 @@ class FallbackCategory(str, Enum):
 
 # --- FALLBACK OG IMAGES ---
 FALLBACK_OG_IMAGES = {
-    FallbackCategory.SOCIAL: "images/og-fallbacks/social.jpg",
-    FallbackCategory.NEWS: "images/og-fallbacks/news.jpg",
-    FallbackCategory.COOKIE: "images/og-fallbacks/cookie.jpg",
-    FallbackCategory.WEIRD: "images/og-fallbacks/weirdlink.jpg",
+    FallbackCategory.SOCIAL: "/static/images/og-fallbacks/social.jpg",
+    FallbackCategory.NEWS: "/static/images/og-fallbacks/news.jpg",
+    FallbackCategory.COOKIE: "/static/images/og-fallbacks/cookie.jpg",
+    FallbackCategory.WEIRD: "/static/images/og-fallbacks/weirdlink.jpg",
 }
 
 
