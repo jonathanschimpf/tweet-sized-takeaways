@@ -21,6 +21,12 @@ app.add_middleware(
 )
 
 # --- [BYE-BYE STATIC LET'S GO PUBLIC] ---
+# 'public' DIR AT ROOT
+# RESOLVE STATIC PATH TO PROJECT ROOT
+public_path = os.path.join(os.path.dirname(__file__), "..", "public")
+app.mount("/", StaticFiles(directory=public_path), name="public")
+
+
 
 # --- ENV VARS ---
 load_dotenv()
