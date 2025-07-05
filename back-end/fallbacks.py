@@ -10,12 +10,12 @@ class FallbackCategory(str, Enum):
     DEFAULT = "weird"
 
 
-# --- FALLBACK OG IMAGES ---
+# --- FALLBACK OG IMAGES SANS /static ---
 FALLBACK_OG_IMAGES = {
-    FallbackCategory.SOCIAL: "/static/images/og-fallbacks/social.jpg",
-    FallbackCategory.NEWS: "/static/images/og-fallbacks/news.jpg",
-    FallbackCategory.COOKIE: "/static/images/og-fallbacks/cookie.jpg",
-    FallbackCategory.WEIRD: "/static/images/og-fallbacks/weirdlink.jpg",
+    FallbackCategory.SOCIAL: "/images/og-fallbacks/social.jpg",
+    FallbackCategory.NEWS: "/images/og-fallbacks/news.jpg",
+    FallbackCategory.COOKIE: "/images/og-fallbacks/cookie.jpg",
+    FallbackCategory.WEIRD: "/images/og-fallbacks/weirdlink.jpg",
 }
 
 
