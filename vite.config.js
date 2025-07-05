@@ -12,5 +12,13 @@ export default defineConfig(({ mode }) => {
         env.VITE_OPENAI_API_KEY
       ),
     },
+    server: {
+      proxy: {
+        "/summarize": {
+          target: "http://localhost:8000",
+          changeOrigin: true,
+        },
+      },
+    },
   };
 });

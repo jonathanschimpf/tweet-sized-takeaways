@@ -1,25 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from urllib.parse import urlparse
 from dotenv import load_dotenv
-import requests
-import os
+from blacklist import get_blacklist_category, is_cookie_gated, normalize_domain
+from fallbacks import get_fallback_og
+from summarizer import extract_text, extract_all_metadata, fetch_html, summarize_text
+import os, time
 
-from summarizer import (
-    extract_text,
-    extract_og_tags,
-    fetch_html,
-    summarize_text,
-)
-from blacklist import get_blacklist_category, is_cookie_gated
-
-# --- LOAD ENV VARS ---
-load_dotenv()
-HF_API_TOKEN = os.getenv("HF_API_TOKEN")
-print(f"🔐 Hugging Face Token Present? {bool(HF_API_TOKEN)}")
-
-# --- FASTAPI INIT ---
+# --- APP ---
 app = FastAPI()
 
 # --- CORS ---
@@ -30,87 +20,132 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- REQUEST MODEL ---
+# --- STATIC FILES ---
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# --- ENV VARS ---
+load_dotenv()
+HF_API_TOKEN = os.getenv("HF_API_TOKEN")
+print(f"🔐 Hugging Face Token Present? {bool(HF_API_TOKEN)}")
+
+
+# --- REQUEST BODY ---
 class URLInput(BaseModel):
     url: str
 
+
+# --- DEDUPE TEXT PARTS ---
+def dedupe_and_combine(parts: list[str]) -> str:
+    seen = set()
+    combined = []
+
+    for part in parts:
+        cleaned = part.strip() if part else None
+        if cleaned and cleaned not in seen:
+            seen.add(cleaned)
+            combined.append(cleaned)
+
+    return " · ".join(combined)
+
+
 # --- MAIN ROUTE ---
 @app.post("/summarize")
-def summarize_link(input: URLInput):
+async def summarize_link(input: URLInput):
     url = input.url.strip()
-    print(f"\n📥 Summarizing: {url}")
+    if not url.startswith("http"):
+        url = "https://" + url
 
-    # --- PARSE DOMAIN ---
+    print(f"\n📥 Summarizing: {url}")
     domain = urlparse(url).netloc
     print(f"🌐 Host: {domain}")
     blacklist_category = get_blacklist_category(domain)
 
-    # --- HANDLE COOKIE WALL ---
+    # --- COOKIE-GATED ---
     if is_cookie_gated(domain):
         print("🍪 Cookie/session-gated domain — skipping.")
         return {
-            "summary": "💥 This site is gatekeeping content behind cookies/sessions. Summarize it yourself. ✨",
-            "og_image": "",
+            "summary": "✨ This site is gatekeeping content behind cookies/sessions. Summarize it yourself. ✨",
+            "og_image": get_fallback_og("cookie"),
         }
 
-    # --- HANDLE SOCIAL/NEWS BLACKLISTS ---
+    # --- BLACKLIST: SOCIAL / NEWS ---
     if blacklist_category in ["social", "news"]:
-        try:
-            html = fetch_html(url)
-            og_image, *_ = extract_og_tags(html)
-            print(f"🖼️ og:image (from blacklist): {og_image}")
-        except Exception as e:
-            print(f"❌ Could not fetch OG image from blacklisted URL: {e}")
-            og_image = ""
+        fallback_image = get_fallback_og(blacklist_category)
 
         if blacklist_category == "social":
             print("🚫 Social media domain — returning snark fallback.")
             return {
                 "summary": "A summary for a social media post? Seriously? Go use the app. ✌️✨",
-                "og_image": og_image,
+                "og_image": fallback_image,
             }
 
         if blacklist_category == "news":
             print("🚫 News media domain — skipping summarization.")
             return {
                 "summary": "We can’t summarize this one — blame the paywalls, trackers, or both. 🧱💸",
-                "og_image": og_image,
+                "og_image": fallback_image,
             }
 
     # --- FETCH HTML ---
     try:
-        html = fetch_html(url)
-        print(f"✅ HTML fetched (len: {len(html)})")
+        t0 = time.time()
+        html = await fetch_html(url)
+        print(f"✅ HTML fetched (len: {len(html)}) in {time.time() - t0:.2f}s")
     except Exception as e:
         print(f"❌ Failed to fetch page: {e}")
-        return {"summary": "❌ Could not fetch the provided URL.", "og_image": ""}
+        return {
+            "summary": "Hugging Face thinks that link is weird... 🙃",
+            "og_image": get_fallback_og("weird"),
+        }
 
-    # --- EXTRACT OG + TEXT ---
-    og_image, og_title, og_desc = extract_og_tags(html)
+    # --- METADATA ---
+    og_image, og_title, og_desc, meta_desc, page_title, h1_text, head_text = extract_all_metadata(html)
+
+    print("\n--- HEAD METADATA DEBUG ---")
     print(f"🧠 og:title: {og_title}")
     print(f"🧠 og:description: {og_desc}")
+    print(f"🧠 <meta name='description'>: {meta_desc}")
+    print(f"🧠 <title>: {page_title}")
+    print(f"🧠 <h1>: {h1_text}")
     print(f"🖼️ og:image: {og_image}")
+    print(f"🧠 COMBINED HEAD TEXT: {head_text}")
 
+    # --- SMART SHORTCUT: USE HEAD TEXT IF CLEAN ---
+    if len(head_text) > 100:
+        print("⚡ Using combined head metadata as summary (skipping HF).")
+        return {
+            "summary": head_text,
+            "og_image": og_image or get_fallback_og("weird"),
+        }
+
+    # --- TEXT EXTRACTION ---
     text = extract_text(html)
     print(f"📄 Text extract length: {len(text)}")
 
-    # --- FALLBACK TO OG IF TEXT TOO SHORT ---
+    # --- FALLBACK IF NOT ENOUGH TEXT ---
     if len(text) < 100:
-        print("⚠️ Not enough text for summarization. Falling back to OG tags.")
+        print("⚠️ Not enough text. Returning best available head metadata.")
+        summary = head_text or "🌀 No clue. This page might’ve been built on vibes."
+        print("⚡ Using combined head metadata as summary (skipping HF).")
         return {
-            "summary": og_desc or og_title or "⚠️ Hugging Face can't seem to summarize this content.",
-            "og_image": og_image,
+            "summary": summary,
+            "og_image": og_image or get_fallback_og("weird"),
         }
 
-    # --- CALL HF MODEL ---
+    # --- HUGGING FACE SUMMARIZATION ---
     try:
         print("🤖 Sending to Hugging Face summarizer...")
-        summary_text = summarize_text(text)
-        return {"summary": summary_text, "og_image": og_image}
+        t1 = time.time()
+        summary_text = await summarize_text(text)
+        print(f"✅ Hugging Face response in {time.time() - t1:.2f}s")
+        return {
+            "summary": summary_text,
+            "og_image": og_image or get_fallback_og("weird"),
+        }
     except Exception as e:
         print(f"💥 HUGGING FACE ERROR: {e}")
-        print("🧠 Falling back to og:description or og:title...")
+        fallback_summary = head_text or "🌀 Something broke. Vibes only."
         return {
-            "summary": og_desc or og_title or "⚠️ Hugging Face couldn't summarize this page.",
-            "og_image": og_image,
+            "summary": fallback_summary,
+            "og_image": og_image or get_fallback_og("weird"),
         }
