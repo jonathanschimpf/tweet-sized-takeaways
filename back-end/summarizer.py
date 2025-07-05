@@ -6,7 +6,7 @@ load_dotenv()
 HF_API_TOKEN = os.getenv("HF_API_TOKEN")
 
 
-# --- FETCH HTML ---
+# --- FETCH - HTML ---
 async def fetch_html(url: str) -> str:
     headers = {
         "User-Agent": "Mozilla/5.0",
