@@ -136,7 +136,7 @@ function App() {
                   <FontAwesomeIcon icon={copied ? faTwitter : faCopy} />
                 </button>
                 <img
-                  src="/images/twitter-died.png"
+                  src="/images/twitter-died-jetblack.png"
                   alt="Dead Twitter bird"
                   className="black-deadtwitterbird"
                 />
