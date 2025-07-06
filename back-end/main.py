@@ -1,5 +1,3 @@
-# --- DEBUG-ENABLED VERSION OF main.py ---
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -92,7 +90,7 @@ async def summarize_link(input: URLInput):
         fallback_img = get_fallback_og("weird")
         print(f"🖼️ Returning weird fallback image: {fallback_img}")
         return {
-            "summary": "Hugging Face thinks that link is weird... 🙃",
+            "summary": "🤷‍♂️",
             "og_image": fallback_img,
         }
 
@@ -119,7 +117,7 @@ async def summarize_link(input: URLInput):
 
     if len(text) < 100:
         print("⚠️ Not enough text. Returning best available head metadata.")
-        summary = head_text or "🌀 No clue. This page might’ve been built on vibes."
+        summary = head_text or "🌀 No clue. This page might've been built on vibes."
         print(f"🔁 Returning: {summary}")
         return {
             "summary": summary,
