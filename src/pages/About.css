@@ -6,32 +6,46 @@
   flex-wrap: wrap;
   margin-top: 2rem;
   margin-bottom: 2.5rem;
-  gap: 1.5rem; /* NATURAL GAP BETWEEN ICONS */
+  gap: 1.5rem;
+  /* NATURAL GAP BETWEEN ICONS */
 }
 
 .about-title {
   color: #1da1f2 !important;
 }
 
+.about-body {
+  text-align: left;
+  max-width: 640px;
+  margin: 0 auto;
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+
 /* DEFAULT ICON STYLE */
 .quick-icon {
-  color: #000000; /* PURE BLACK IN LIGHT MODE */
+  color: #000000;
+  /* PURE BLACK IN LIGHT MODE */
   transition: color 0.2s ease, transform 0.2s ease;
-  text-decoration: none; /* REMOVE LINK UNDERLINE */
+  text-decoration: none;
+  /* REMOVE LINK UNDERLINE */
 }
 
 /* HOVER / PRESS */
 .quick-icon:hover,
 .quick-icon:focus,
 .quick-icon:active {
-  color: #1da1f2; /* TWITTER BLUE HOVER STATE */
+  color: #1da1f2;
+  /* TWITTER BLUE HOVER STATE */
   transform: scale(1.1);
   opacity: 0.85;
 }
 
 /* DARK THEME DEFAULT */
 body[data-theme="dark"] .quick-icon {
-  color: #636363; /* LIGHT GRAY FOR DARK MODE */
+  color: #636363;
+  /* LIGHT GRAY FOR DARK MODE */
 }
 
 /* DARK THEME HOVER */
@@ -46,10 +60,40 @@ body[data-theme="dark"] .quick-icon:active {
   color: inherit;
 }
 
-/* TWITTER BLUE SIGN OFF */
+/* TWITTER BLUE TXT */
+.twitterbluetxt {
+  color: #1da1f2;
+  text-decoration: none;
+}
+
+.twitterblue-link {
+  font-weight: 700;
+  color: #1da1f2;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  display: inline-block;
+  transition: color 0.2s ease, transform 0.2s ease;
+  transform-origin: bottom;
+}
+
+
+.twitterblue-link:visited {
+  color: #1da1f2;
+  /* PREVENT PURP */
+}
+
+
+.twitterblue-link:hover {
+  color: #1991da;
+  /* SLIGHTLY DARKER TWITTER BLUE ON HOVER */
+}
+
+.twitterblue-link:active {
+  color: #1574b3;
+}
 
 .twitterbluesignoff {
-  font-weight: bold;
+  font-weight: 800;
   color: #1da1f2 !important;
 }
 
@@ -74,5 +118,6 @@ body[data-theme="light"] .huggingface-link {
 }
 
 .huggingface-link:hover {
-  color: #1da1f2; /* Twitter blue hover */
+  color: #1da1f2;
+  /* Twitter blue hover */
 }

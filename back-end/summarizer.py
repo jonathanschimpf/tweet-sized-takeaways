@@ -17,13 +17,34 @@ async def fetch_html(url: str) -> str:
             return await response.text()
 
 
+# --- REMOVE REPEATED PHRASES FROM HEAD TEXT ---
+def remove_repeated_phrases(text: str) -> str:
+    phrases = [p.strip() for p in text.split("·")]
+    seen = set()
+    deduped = []
+    for phrase in phrases:
+        key = phrase.lower()
+        if key not in seen:
+            seen.add(key)
+            deduped.append(phrase)
+    return " · ".join(deduped)
+
+
+# --- HARD TRIM TO 280 CHARS WITHOUT CUTTING WORDS ---
+def cap_to_280(text: str) -> str:
+    if len(text) <= 280:
+        return text
+    trimmed = text[:280].rsplit(" ", 1)[0]
+    return trimmed.rstrip(".,;:") + "…"
+
+
 # --- DEDUPE AND COMBINE HEAD STRINGS ---
 def dedupe_and_combine(parts: list[str]) -> str:
     seen = set()
     combined = []
     for part in parts:
         cleaned = part.strip() if part else None
-        if cleaned and cleaned not in seen:
+        if cleaned and cleaned not in seen and len(cleaned) <= 280:
             seen.add(cleaned)
             combined.append(cleaned)
     return " · ".join(combined)
@@ -52,26 +73,27 @@ def extract_og_tags(html: str):
     head_parts = [og_title, og_desc, meta_desc, title, h1]
     head_text = dedupe_and_combine(head_parts)
 
-    return og_image, og_title, og_desc, meta_desc, title, h1, head_text
+    # REMOVE REDUNDANCY + CAP FINAL TEXT
+    clean_head_text = remove_repeated_phrases(head_text)
+    final_summary = cap_to_280(clean_head_text)
+
+    return og_image, og_title, og_desc, meta_desc, title, h1, final_summary
 
 
 # --- EXTRACT BODY TEXT ---
 def extract_text(html: str) -> str:
     soup = BeautifulSoup(html, "html.parser")
 
-    # REMOVE NON-CONTENT TAGS
-    for tag in soup(["script", "style", "noscript", "header", "footer", "nav", "aside"]):
+    for tag in soup(
+        ["script", "style", "noscript", "header", "footer", "nav", "aside"]
+    ):
         tag.decompose()
 
-    # REMOVE IMAGE TAGS
     for img in soup.find_all("img"):
         img.decompose()
 
-    # REMOVE SHORT OR URL-LIKE STRINGS
     text = soup.get_text(separator=" ", strip=True)
     cleaned = re.sub(r"\s+", " ", text)
-
-    # STRIP OUT IMAGE FILENAMES OR .png/.jpg PATHS
     cleaned = re.sub(r"https?:\/\/\S+\.(?:png|jpe?g|webp|gif)(\?\S*)?", "", cleaned)
 
     return cleaned

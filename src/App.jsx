@@ -17,7 +17,6 @@ import { faTwitter } from "@fortawesome/free-brands-svg-icons";
 import { library } from "@fortawesome/fontawesome-svg-core";
 library.add(faCopy, faTwitter);
 
-// EVER-PRESENT NAV ROUTING
 import { Link, useLocation } from "react-router-dom";
 
 function App() {
@@ -26,25 +25,31 @@ function App() {
   const [ogImage, setOgImage] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [usedHuggingFace, setUsedHuggingFace] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
 
   const location = useLocation();
 
-  const handleSummarize = async () => {
+  const handleSummarize = async (forceHF = false) => {
     setLoading(true);
     setSummary("");
     setOgImage("");
+    setUsedHuggingFace(false);
+
     try {
-      const response = await fetch("http://localhost:8000/summarize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: htmlInput }),
-      });
+      const response = await fetch(
+        `http://localhost:8000/summarize${forceHF ? "/hf" : ""}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: htmlInput }),
+        }
+      );
 
       const data = await response.json();
       setSummary(data.summary || "⚠️ No summary returned.");
-      if (data.og_image) {
-        setOgImage(data.og_image);
-      }
+      if (data.og_image) setOgImage(data.og_image);
+      if (data.used_huggingface) setUsedHuggingFace(true);
     } catch (err) {
       console.error("🔥 Network error:", err);
       setSummary("💥 Backend unreachable or failed. Check console.");
@@ -72,10 +77,8 @@ function App() {
     <Container className="container">
       <Row className="justify-content-center">
         <Col xs={12} className="text-center px-3">
-          {/* APP TITLE */}
           <h1 className="title">Tweet-Sized Takeaways</h1>
 
-          {/* INPUT */}
           <Form onKeyDown={handleKeyPress}>
             <Form.Group className="d-flex justify-content-center mb-3">
               <Form.Control
@@ -91,7 +94,7 @@ function App() {
               <Button
                 className="twitterblue"
                 variant="primary"
-                onClick={handleSummarize}
+                onClick={() => handleSummarize()}
                 disabled={loading}
               >
                 {loading ? (
@@ -107,7 +110,13 @@ function App() {
             </div>
           </Form>
 
-          {/* OG IMAGE */}
+          {/* ALREADY USED HF MESSAGE */}
+          {usedHuggingFace && (
+            <p className="small text-muted">
+              The Hugging Face summary is on the takeaway card below.
+            </p>
+          )}
+
           {ogImage && (
             <div className="og-image-container mb-3">
               <img
@@ -119,7 +128,6 @@ function App() {
             </div>
           )}
 
-          {/* SUMMARY CARD */}
           {summary && (
             <Card className="mt-4 summary-card">
               <Card.Body className="summary-body">
@@ -128,18 +136,52 @@ function App() {
                     📝 280-Character (or less) Takeaway
                   </span>
                 </div>
+
                 <Card.Text className="summary-text">{summary}</Card.Text>
-                <button
-                  className={`icon-copy-btn${copied ? " copied" : ""}`}
-                  onClick={handleCopy}
-                >
-                  <FontAwesomeIcon icon={copied ? faTwitter : faCopy} />
-                </button>
-                <img
-                  src="/images/twitter-died-jetblack.png"
-                  alt="Dead Twitter bird"
-                  className="black-deadtwitterbird"
-                />
+
+                {/* ICON STRIP BELOW SUMMARY */}
+                <div className="summary-icons">
+                  {/* COPY BUTTON + TOOLTIP */}
+                  <div className="tooltip-wrapper">
+                    <button
+                      className={`icon-copy-btn${copied ? " copied" : ""}`}
+                      onClick={handleCopy}
+                    >
+                      <FontAwesomeIcon icon={copied ? faTwitter : faCopy} />
+                    </button>
+                    <div className="icon-tooltip">Copy</div>
+                  </div>
+
+                  {/* DEAD TWITTER BIRD + TOOLTIP */}
+                  <div className="tooltip-wrapper bird-tooltip">
+                    <img
+                      src="/images/twitter-died-jetblack.png"
+                      alt="Dead Twitter bird"
+                      className="black-deadtwitterbird"
+                    />
+                    <div className="icon-tooltip">xTwitter is dead</div>
+                  </div>
+
+                  {/* HUGGING FACE BUTTON + TOOLTIP */}
+                  <div className="huggingface-wrapper tooltip-wrapper">
+                    <button
+                      className="huggingface-btn"
+                      onClick={() => {
+                        handleSummarize(true);
+                        setShowTooltip(true);
+                        setTimeout(() => setShowTooltip(false), 1000);
+                      }}
+                      disabled={loading || usedHuggingFace}
+                    >
+                      🤗
+                    </button>
+                    <div
+                      className={`icon-tooltip${showTooltip ? " visible" : ""}`}
+                    >
+                      Hugging Face Takeaway
+                    </div>
+                  </div>
+                </div>
               </Card.Body>
             </Card>
           )}

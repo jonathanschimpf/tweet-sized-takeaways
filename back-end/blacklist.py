@@ -7,7 +7,7 @@ BLACKLISTED_DOMAINS = {
         "nytimes.com",
         "bloomberg.com",
         "cnbc.com",
-        "foxnews.com"
+        "foxnews.com",
     ],
     FallbackCategory.SOCIAL: [
         "instagram.com",
@@ -25,12 +25,14 @@ COOKIE_WALL_DOMAINS = [
     "docs.google.com",
 ]
 
+
 # --- CLEAN + NORMALIZE DOMAIN INPUT ---
 def normalize_domain(domain: str) -> str:
     domain = domain.lower().strip()
     if domain.startswith("www."):
         domain = domain[4:]
     return domain
+
 
 # --- BLACKLIST CATEGORY CHECK ---
 def get_blacklist_category(domain: str):
@@ -39,6 +41,7 @@ def get_blacklist_category(domain: str):
         if domain in domains:
             return category
     return None
+
 
 # --- CHECK IF COOKIE-GATED ---
 def is_cookie_gated(domain: str):

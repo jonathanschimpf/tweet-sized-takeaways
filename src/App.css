@@ -1,8 +1,8 @@
-/* LAYOUT! */
+/* RESET & LAYOUT */
 #root {
   width: 100%;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1rem;
   display: flex;
   justify-content: center;
 }
@@ -10,8 +10,6 @@
 .container {
   width: 100%;
   max-width: 640px;
-  margin: 0 auto;
-  padding-top: 40px;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -24,22 +22,14 @@
   font-size: 1.75rem;
   white-space: nowrap;
   margin: 0 auto 0.5rem;
-  max-width: 640px;
   color: inherit;
-}
-
-.card-title.h5 {
-  color: #000000;
-  font-size: 15px;
-  line-height: 1.25;
+  text-align: center;
 }
 
 /* INPUTS */
 .custom-input {
   width: 100%;
-  max-width: 640px;
   height: 42px;
-  margin: 0 auto;
   background-color: var(--input-bg);
   color: var(--text-color);
   border: 1px solid #333;
@@ -54,7 +44,6 @@ textarea {
 .og-image,
 .summary-background {
   width: 100%;
-  max-width: 680px;
   border-radius: 1.25rem;
   margin: 1.5rem 0;
   object-fit: cover;
@@ -71,8 +60,7 @@ body[data-theme="dark"] .summary-background {
 
 /* SUMMARY CARD */
 .summary-card {
-  max-width: 680px;
-  margin: 0 auto;
+  width: 100%;
   position: relative;
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.035);
@@ -85,12 +73,10 @@ body[data-theme="dark"] .summary-background {
 }
 
 body[data-theme="dark"] .summary-card {
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-}
-
-.summary-label {
-  color: #1da1f2 !important;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  background-color: #1a1a1a;
+  color: #fff;
 }
 
 .summary-header {
@@ -103,26 +89,47 @@ body[data-theme="dark"] .summary-card {
   justify-content: center;
 }
 
-body[data-theme="dark"] .summary-card {
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-}
-
-/* SUBTLE CARD HOVER FOR INTERACTIVITY */
-.summary-card:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+.summary-label {
+  color: #1da1f2 !important;
 }
 
 .summary-text {
   font-size: 1rem;
-  margin-bottom: 2.5rem;
   text-align: center;
 }
 
+/* TAKEAWAY ICON STRIP */
+.summary-icons {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  /* ALIGN ICONS BY THEIR TOP EDGE */
+  position: relative;
+  width: 100%;
+  padding-top: 1rem;
+  margin-top: auto;
+}
+
+/* 🐦 DEAD xTWITTER BIRD TOOLTIP SPACING */
+.black-deadtwitterbird-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 1;
+  min-width: 64px;
+  gap: 24px;
+  /* ADD SPACING BETWEEN IMAGE AND TOOLTIP */
+}
+
+/* 🐦 BLACK BIRD TOOLTIP BREATHING ROOM */
+.tooltip-wrapper.bird-tooltip .icon-tooltip {
+  padding-top: 15px;
+}
+
+
+/* COPY ICON */
 .icon-copy-btn {
-  position: absolute;
-  bottom: 1rem;
-  left: 1rem;
   background: none;
   border: none;
   font-size: 1.2rem;
@@ -137,10 +144,78 @@ body[data-theme="dark"] .summary-card {
   color: #1da1f2 !important;
 }
 
-/* BUTTON — SUMMARIZE */
+.icon-copy-btn .fa-twitter {
+  color: #1da1f2 !important;
+}
+
+/* DEAD TWITTER BIRD */
+.black-deadtwitterbird {
+  width: 64px;
+  height: auto;
+  pointer-events: none;
+  opacity: 0.85;
+  display: block;
+  margin: 0 auto;
+  z-index: 0;
+}
+
+.black-deadtwitterbird:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* HUGGING FACE BUTTON */
+.huggingface-wrapper {
+  position: relative;
+}
+
+.huggingface-btn {
+  font-size: 1.25rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  filter: brightness(1);
+}
+
+.huggingface-btn:hover {
+  transform: scale(1.15);
+}
+
+.huggingface-btn:disabled {
+  cursor: default;
+  filter: brightness(0.85) grayscale(20%);
+}
+
+body[data-theme="dark"] .huggingface-btn {
+  filter: brightness(1.2);
+}
+
+/* TOOLTIP STYLES */
+.icon-tooltip {
+  font-size: 0.7rem;
+  margin-top: 4px;
+  color: #1da1f2;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  white-space: nowrap;
+  pointer-events: none;
+  text-align: center;
+}
+
+.tooltip-wrapper:hover .icon-tooltip,
+.icon-tooltip.visible {
+  opacity: 1;
+}
+
+/* POSITION CONTEXT FOR ICONS */
+.summary-body {
+  position: relative;
+}
+
+/* SUMMARIZE BUTTON */
 .twitterblue {
   background-color: #1da1f2;
-  color: #ffffff;
+  color: #fff;
   border: 2px solid #1da1f2;
   border-radius: 9999px;
   padding: 0 1.5rem;
@@ -158,14 +233,14 @@ body[data-theme="dark"] .summary-card {
 
 .twitterblue:disabled {
   background-color: #a8d8f8;
-  border: 2px solid #a8d8f8;
-  color: #ffffff;
+  border-color: #a8d8f8;
+  color: #fff;
   cursor: not-allowed;
 }
 
 /* NAVIGATION */
 .nav-links {
-  margin-top: -3.66rem;
+  margin-top: 0;
   margin-bottom: 1.25rem;
   display: flex;
   justify-content: center;
@@ -174,43 +249,29 @@ body[data-theme="dark"] .summary-card {
 
 .nav-link-item {
   text-decoration: none;
-  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 1.25rem;
   padding: 0 0.5rem;
   color: #212529;
+  position: relative;
 }
 
-.nav-link-item.active {
-  color: #1da1f2;
+.nav-link-item.active .fa-twitter,
+.nav-link-item:hover .fa-twitter {
+  color: #1da1f2 !important;
 }
 
 .nav-link-item.active::after {
-  content: "";
-  position: absolute;
-  bottom: -6px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: #1da1f2;
-  border-radius: 9999px;
-}
-
-.nav-link-item:hover {
-  color: #1da1f2;
+  display: none;
 }
 
 .nav-separator {
   color: #6c757d;
 }
 
-.nav-link-item:hover svg {
-  color: #1da1f2 !important;
-}
-
-/* THEME TOGGLE ICON */
+/* THEME TOGGLE */
 .theme-toggle-icon-btn {
   background-color: transparent;
   border: none;
@@ -233,54 +294,32 @@ body[data-theme="dark"] .summary-card {
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25);
 }
 
-/* DARK THEME OVERRIDES */
+/* DARK MODE */
 body[data-theme="dark"] .custom-input,
 body[data-theme="dark"] input[type="url"],
 body[data-theme="dark"] textarea {
   background-color: #1e1e1e;
-  color: #ffffff;
-  border: 1px solid #333333;
+  color: #fff;
+  border: 1px solid #333;
 }
 
 body[data-theme="dark"] input::placeholder,
 body[data-theme="dark"] textarea::placeholder {
-  color: #aaaaaa;
-}
-
-body[data-theme="dark"] .summary-card {
-  background-color: #1a1a1a;
-  color: #ffffff;
-}
-
-body[data-theme="dark"] .card-title.h5 {
-  color: #ffffff;
+  color: #aaa;
 }
 
 body[data-theme="dark"] .nav-link-item {
   color: #636363;
 }
 
-body[data-theme="dark"] .nav-link-item.active {
-  color: #1da1f2;
-}
-
+body[data-theme="dark"] .nav-link-item.active,
 body[data-theme="dark"] .nav-link-item:hover {
   color: #1da1f2;
 }
 
-body[data-theme="dark"] .fa-twitter {
-  color: #636363;
-}
-
-body[data-theme="dark"] .nav-link-item.active .fa-twitter {
-  color: #1da1f2;
-}
-
-body[data-theme="dark"] .summary-card .card-title.h5 {
-  color: #1da1f2 !important;
-}
-
-body[data-theme="dark"] .icon-copy-btn {
+body[data-theme="dark"] .fa-twitter,
+body[data-theme="dark"] .icon-copy-btn,
+body[data-theme="dark"] .quick-icon {
   color: #636363;
 }
 
@@ -289,15 +328,11 @@ body[data-theme="dark"] .icon-copy-btn.copied {
   color: #1da1f2 !important;
 }
 
-body[data-theme="dark"] .quick-icon {
-  color: #636363;
-}
-
 body[data-theme="light"] .quick-icon {
   color: #212529;
 }
 
-/* ACCESSIBILITY RING */
+/* ACCESSIBILITY */
 :focus-visible {
   outline: 2px solid #1da1f2 !important;
   outline-offset: 2px;
@@ -311,35 +346,4 @@ a {
 
 a:visited {
   color: inherit;
-}
-
-/* FORCE BORDER TO BE TWITTER BLUE */
-button.twitterblue {
-  border-color: #1da1f2 !important;
-  box-shadow: none;
-}
-
-button.twitterblue:disabled {
-  background-color: transparent !important;
-  border-color: #1da1f2 !important;
-  color: #1da1f2 !important;
-}
-
-/* COPY BUTTON — TWITTER BIRD */
-.icon-copy-btn .fa-twitter {
-  color: #1da1f2 !important;
-}
-
-/* BLACK DEAD TWITTER BIRD */
-.black-deadtwitterbird {
-  position: absolute;
-  bottom: 0.25rem;
-  right: 0.5rem;
-  width: 64px;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.black-deadtwitterbird:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
 }
