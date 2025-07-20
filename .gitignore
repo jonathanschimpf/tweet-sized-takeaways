@@ -22,7 +22,7 @@ __pycache__/
 
 # ─── ENV / SECRETS ───
 .env
-back-end/.env
+backend/.env
 
 # ─── SYSTEM FILES ───
 .DS_Store

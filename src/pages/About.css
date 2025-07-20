@@ -62,6 +62,7 @@ body[data-theme="dark"] .quick-icon:active {
 
 /* TWITTER BLUE TXT */
 .twitterbluetxt {
+  font-weight: 600;
   color: #1da1f2;
   text-decoration: none;
 }

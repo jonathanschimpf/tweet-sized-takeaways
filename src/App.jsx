@@ -47,7 +47,7 @@ function App() {
       );
 
       const data = await response.json();
-      setSummary(data.summary || "⚠️ No summary returned.");
+      setSummary(data.summary || "🤗 This website doesn't even like Hugging Face — give it a once over and arrive at a summary of your own. 🤷‍♂️");
       if (data.og_image) setOgImage(data.og_image);
       if (data.used_huggingface) setUsedHuggingFace(true);
     } catch (err) {
@@ -110,13 +110,6 @@ function App() {
             </div>
           </Form>
 
-          {/* ALREADY USED HF MESSAGE */}
-          {usedHuggingFace && (
-            <p className="small text-muted">
-              The Hugging Face summary is on the takeaway card below.
-            </p>
-          )}
-
           {ogImage && (
             <div className="og-image-container mb-3">
               <img
@@ -129,61 +122,73 @@ function App() {
           )}
 
           {summary && (
-            <Card className="mt-4 summary-card">
-              <Card.Body className="summary-body">
-                <div className="summary-header">
-                  <span className="summary-label">
-                    📝 280-Character (or less) Takeaway
-                  </span>
-                </div>
-
-                <Card.Text className="summary-text">{summary}</Card.Text>
-
-                {/* ICON STRIP BELOW SUMMARY */}
-                <div className="summary-icons">
-                  {/* COPY BUTTON + TOOLTIP */}
-                  <div className="tooltip-wrapper">
-                    <button
-                      className={`icon-copy-btn${copied ? " copied" : ""}`}
-                      onClick={handleCopy}
-                    >
-                      <FontAwesomeIcon icon={copied ? faTwitter : faCopy} />
-                    </button>
-                    <div className="icon-tooltip">Copy</div>
+            <>
+              <Card className="mt-4 summary-card">
+                <Card.Body className="summary-body">
+                  <div className="summary-header">
+                    <span className="summary-label">
+                      📝 280-Character (or less) Takeaway
+                    </span>
                   </div>
 
-                  {/* DEAD TWITTER BIRD + TOOLTIP */}
-                  <div className="tooltip-wrapper bird-tooltip">
-                    <img
-                      src="/images/twitter-died-jetblack.png"
-                      alt="Dead Twitter bird"
-                      className="black-deadtwitterbird"
-                    />
-                    <div className="icon-tooltip">xTwitter is dead</div>
-                  </div>
+                  <Card.Text className="summary-text">{summary}</Card.Text>
 
-                  {/* HUGGING FACE BUTTON + TOOLTIP */}
-                  <div className="huggingface-wrapper tooltip-wrapper">
-                    <button
-                      className="huggingface-btn"
-                      onClick={() => {
-                        handleSummarize(true);
-                        setShowTooltip(true);
-                        setTimeout(() => setShowTooltip(false), 1000);
-                      }}
-                      disabled={loading || usedHuggingFace}
-                    >
-                      🤗
-                    </button>
-                    <div
-                      className={`icon-tooltip${showTooltip ? " visible" : ""}`}
-                    >
-                      Hugging Face Takeaway
+                  <div className="summary-icons">
+                    {/* COPY BUTTON + TOOLTIP */}
+                    <div className="tooltip-wrapper">
+                      <button
+                        className={`icon-copy-btn${copied ? " copied" : ""
+                          }`}
+                        onClick={handleCopy}
+                      >
+                        <FontAwesomeIcon
+                          icon={copied ? faTwitter : faCopy}
+                        />
+                      </button>
+                      <div className="icon-tooltip">Copy</div>
+                    </div>
+
+                    {/* DEAD TWITTER BIRD + TOOLTIP */}
+                    <div className="tooltip-wrapper bird-tooltip">
+                      <img
+                        src="/images/twitter-died-jetblack.png"
+                        alt="Dead Twitter bird"
+                        className={`black-deadtwitterbird${usedHuggingFace ? " dimmed" : ""}`}
+                      />
+                      <div className="icon-tooltip">xTwitter is dead</div>
+                    </div>
+
+                    {/* HUGGING FACE BUTTON + TOOLTIP */}
+                    <div className="huggingface-wrapper tooltip-wrapper">
+                      <button
+                        className="huggingface-btn"
+                        onClick={() => {
+                          handleSummarize(true);
+                          setShowTooltip(true);
+                          setTimeout(() => setShowTooltip(false), 1000);
+                        }}
+                        disabled={loading || usedHuggingFace}
+                      >
+                        🤗
+                      </button>
+                      <div
+                        className={`icon-tooltip${showTooltip ? " visible" : ""
+                          }`}
+                      >
+                        Hugging Face Takeaway
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Card.Body>
-            </Card>
+                </Card.Body>
+              </Card>
+
+              {/* HF MESSAGE BELOW CARD */}
+              {usedHuggingFace && (
+                <p className="hf-note text-muted mt-2 text-center">
+                  The Hugging Face summary is up there on the takeaway card. 🤗
+                </p>
+              )}
+            </>
           )}
         </Col>
       </Row>

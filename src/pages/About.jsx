@@ -16,8 +16,8 @@ export default function About() {
             facebook/bart-large-cnn </a>&nbsp;summarization model, served through Hugging Face's Inference API.
           <br />
           <br />
-          It's an interesting contrast between what a developer writes into &lt;meta&gt; tags and what an AI model extracts from the full content.
-          So whether it's a quick, native insight or a modeled, AI-powered interpretation, you get two takes on the same link.
+          It's an interesting contrast between what a developer writes into <span className="twitterbluetxt">&lt;meta&gt;</span>&nbsp;tags and what an AI model extracts from the full content.
+          So either a quick, native insight scrape or an AI-powered interpretation, you get two takes on the same link.
           One lightweight and author-provided, one heavyweight and distilled by open source. &nbsp;
           <span className="twitterbluesignoff">
             Crafted by Jonathan Schimpf in 2025 — 2 years after Twitter died.

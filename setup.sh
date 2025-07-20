@@ -1,11 +1,10 @@
-# SETUP VIRTUAL ENVIRONMENTS
+#!/bin/bash
 python3 -m venv venv
 source venv/bin/activate
 
-# INSTALL back-end DEPENDENCIES
-pip install -r back-end/requirements.txt
+# INSTALL backend DEPENDENCIES
+pip install -r backend/requirements.txt
 
-# RUN FastAPI FROM INSIDE back-end
-cd back-end
+# RUN FastAPI FROM INSIDE backend
+cd backend
 uvicorn main:app --reload
-

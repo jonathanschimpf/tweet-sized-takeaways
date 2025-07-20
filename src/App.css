@@ -238,39 +238,6 @@ body[data-theme="dark"] .huggingface-btn {
   cursor: not-allowed;
 }
 
-/* NAVIGATION */
-.nav-links {
-  margin-top: 0;
-  margin-bottom: 1.25rem;
-  display: flex;
-  justify-content: center;
-  gap: 0.75rem;
-}
-
-.nav-link-item {
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  padding: 0 0.5rem;
-  color: #212529;
-  position: relative;
-}
-
-.nav-link-item.active .fa-twitter,
-.nav-link-item:hover .fa-twitter {
-  color: #1da1f2 !important;
-}
-
-.nav-link-item.active::after {
-  display: none;
-}
-
-.nav-separator {
-  color: #6c757d;
-}
-
 /* THEME TOGGLE */
 .theme-toggle-icon-btn {
   background-color: transparent;
@@ -332,6 +299,13 @@ body[data-theme="light"] .quick-icon {
   color: #212529;
 }
 
+/* FIX LIGHT MODE LINK COLOR OVERRIDES */
+body[data-theme="light"] a:hover,
+body[data-theme="light"] .nav-link-item:hover {
+  color: #1da1f2 !important;
+}
+
+
 /* ACCESSIBILITY */
 :focus-visible {
   outline: 2px solid #1da1f2 !important;
@@ -346,4 +320,76 @@ a {
 
 a:visited {
   color: inherit;
+}
+
+/* NAVIGATION */
+.nav-links {
+  margin-top: 0;
+  margin-bottom: 1.25rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.nav-link-item {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  padding: 0 0.5rem;
+  color: #212529;
+  position: relative;
+}
+
+.nav-link-item.active .fa-twitter,
+.nav-link-item:hover .fa-twitter {
+  color: #1da1f2 !important;
+}
+
+.nav-link-item.active::after {
+  display: none;
+}
+
+.nav-separator {
+  color: #6c757d;
+}
+
+.nav-link-item.active {
+  color: #1da1f2 !important;
+  font-weight: 600;
+}
+
+.nav-link-item:visited .fa-twitter {
+  color: inherit !important;
+}
+
+/* DARK MODE HF MSG 🤗 */
+[data-theme="dark"] .hf-note {
+  color: #ffffff !important;
+}
+
+/* NUKE BOOTSTRAP BECAUSE TWITTER BLUE EVERYTHING */
+
+button.twitterblue,
+.twitterblue.btn,
+.btn.twitterblue {
+  background-color: #1da1f2 !important;
+  color: #fff !important;
+  border: 2px solid #1da1f2 !important;
+  border-radius: 9999px !important;
+}
+
+button.twitterblue:hover,
+.twitterblue.btn:hover {
+  background-color: transparent !important;
+  color: #1da1f2 !important;
+  border-color: #1da1f2 !important;
+}
+
+button.twitterblue:focus,
+.twitterblue.btn:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: #1da1f2 !important;
 }
