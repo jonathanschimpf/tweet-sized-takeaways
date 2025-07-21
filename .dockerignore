@@ -1,0 +1,32 @@
+# ─── LOG FILES ───
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ─── NODE / FRONTEND ───
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# ─── PYTHON / BACKEND ───
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# ─── ENV / SECRETS ───
+.env
+backend/.env
+
+# ─── SYSTEM FILES ───
+.DS_Store
+
+# ─── EDITOR FILES ───
+.idea/
+.vscode/

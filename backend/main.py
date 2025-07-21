@@ -8,7 +8,7 @@ from summarizer import (
     fetch_html,
     extract_og_image,
     get_best_summary,
-    sanitize_html_for_summary,  # ✅ Added
+    sanitize_html_for_summary,
 )
 from extract import (
     extract_og_tags,
@@ -16,8 +16,10 @@ from extract import (
 )
 from blacklist import get_blacklist_category, is_cookie_gated
 from fallbacks import get_fallback_og
+from screenshot import take_screenshot  # ✅ NEW
 
 import os
+from pathlib import Path
 
 app = FastAPI()
 
@@ -70,6 +72,15 @@ async def summarize(input: URLInput):
 
         print("🔁 Falling back to Hugging Face")
         summary = await get_best_summary(native)
+
+        # ✅ Final fallback to Playwright screenshot
+        if not og_image:
+            print("📸 OG image missing — capturing screenshot")
+            screenshot_path = await take_screenshot(input.url)
+            og_image = f"/static/screenshots/{screenshot_path.name}"
+        else:
+            print("🖼️ OG image available — skipping screenshot")
+
         return {
             "summary": summary,
             "used_huggingface": True,
@@ -91,7 +102,7 @@ async def summarize_with_hf(input: URLInput):
 
     try:
         html = await fetch_html(input.url)
-        text = sanitize_html_for_summary(html)  # ✅ New centralized sanitizer
+        text = sanitize_html_for_summary(html)
 
         if len(text.strip()) < 100:
             return {
