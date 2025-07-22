@@ -38,7 +38,7 @@ function App() {
 
     try {
       const response = await fetch(
-        `http://localhost:8000/summarize${forceHF ? "/hf" : ""}`,
+        `https://tweet-sized-takeaways.onrender.com/summarize${forceHF ? "/hf" : ""}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
