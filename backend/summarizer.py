@@ -1,7 +1,7 @@
 import os
 import re
 import aiohttp
-from backend.bs4 import BeautifulSoup
+from bs4 import BeautifulSoup
 from backend.extract import extract_og_tags, extract_paragraph_like_block
 
 
