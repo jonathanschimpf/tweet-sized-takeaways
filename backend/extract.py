@@ -1,4 +1,4 @@
-from bs4 import BeautifulSoup
+from backend.bs4 import BeautifulSoup
 import re
 
 
