@@ -1,8 +1,8 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
-from dotenv import load_dotenv
+from backend.fastapi import FastAPI
+from backend.fastapi.middleware.cors import CORSMiddleware
+from backend.fastapi.staticfiles import StaticFiles
+from backend.pydantic import BaseModel
+from backend.dotenv import load_dotenv
 
 from backend.summarizer import (
     fetch_html,

@@ -1,4 +1,4 @@
-from fallbacks import FallbackCategory
+from backend.fallbacks import FallbackCategory
 
 # --- BLACKLISTED DOMAINS ---
 BLACKLISTED_DOMAINS = {

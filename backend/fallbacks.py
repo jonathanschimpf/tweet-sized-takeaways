@@ -1,6 +1,4 @@
-# fallbacks.py
-
-from enum import Enum
+from backend.enum import Enum
 
 
 class FallbackCategory(str, Enum):

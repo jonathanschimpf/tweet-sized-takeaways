@@ -1,8 +1,8 @@
 import os
 import re
 import aiohttp
-from bs4 import BeautifulSoup
-from extract import extract_og_tags, extract_paragraph_like_block
+from backend.bs4 import BeautifulSoup
+from backend.extract import extract_og_tags, extract_paragraph_like_block
 
 
 HF_API_URL = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
