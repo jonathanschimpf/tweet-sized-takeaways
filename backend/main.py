@@ -4,19 +4,19 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-from backend.summarizer import (
+from .summarizer import (
     fetch_html,
     extract_og_image,
     get_best_summary,
     sanitize_html_for_summary,
 )
-from backend.extract import (
+from .extract import (
     extract_og_tags,
     extract_paragraph_like_block,
 )
-from backend.blacklist import get_blacklist_category, is_cookie_gated
-from backend.fallbacks import get_fallback_og
-from backend.screenshot import take_screenshot
+from .blacklist import get_blacklist_category, is_cookie_gated
+from .fallbacks import get_fallback_og
+from .screenshot import take_screenshot
 
 import os
 from pathlib import Path

@@ -1,4 +1,4 @@
-from backend.enum import Enum
+from .enum import Enum
 
 
 class FallbackCategory(str, Enum):
