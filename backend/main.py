@@ -44,7 +44,8 @@ app.mount("/static", StaticFiles(directory=public_path), name="static")
 
 
 # HEALTH CHECK ROUTE
-@app.get("/")
+# HEALTH CHECK ROUTE
+@app.api_route("/", methods=["GET", "HEAD"])
 def read_root():
     return {"message": "Backend is live"}
 
