@@ -1,7 +1,7 @@
 import os
 import asyncio
-from .pathlib import Path
-from .playwright.async_api import async_playwright
+from pathlib import Path
+from playwright.async_api import async_playwright
 
 # Output directory for screenshots
 SCREENSHOT_DIR = Path(__file__).parent / "screenshots"
