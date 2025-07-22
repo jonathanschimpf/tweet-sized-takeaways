@@ -4,6 +4,14 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
+import os
+from pathlib import Path
+
+# LOAD .env VARIABLES
+load_dotenv()
+HF_API_TOKEN = os.getenv("HF_API_TOKEN")
+
+# INTERNAL MODULES
 from .summarizer import (
     fetch_html,
     extract_og_image,
@@ -18,11 +26,10 @@ from .blacklist import get_blacklist_category, is_cookie_gated
 from .fallbacks import get_fallback_og
 from .screenshot import take_screenshot
 
-import os
-from pathlib import Path
-
+# INITIALIZE FastAPI
 app = FastAPI()
 
+# CORS CONFIG
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://tweet-sized-takeaways.netlify.app"],
@@ -31,17 +38,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# STATIC FILES (PLAYWRIGHT SCREENSHOTS, ETC.)
 public_path = os.path.join(os.path.dirname(__file__), "..", "public")
 app.mount("/static", StaticFiles(directory=public_path), name="static")
 
-load_dotenv()
-HF_API_TOKEN = os.getenv("HF_API_TOKEN")
+
+# HEALTH CHECK ROUTE
+@app.get("/")
+def read_root():
+    return {"message": "Backend is live"}
 
 
+# Pydantic MODEL FOR URL INPUT
 class URLInput(BaseModel):
     url: str
 
 
+# MAIN SUMMARIZE ROUTE
 @app.post("/summarize")
 async def summarize(input: URLInput):
     print(f"🔵 URL received: {input.url}")
@@ -74,7 +87,7 @@ async def summarize(input: URLInput):
         print("🔁 Falling back to Hugging Face")
         summary = await get_best_summary(native)
 
-        # ✅ Final fallback to Playwright screenshot
+        # ✅ FINAL FALLBACK TO PLAYWRIGHT SCREENSHOT
         if not og_image:
             print("📸 OG image missing — capturing screenshot")
             screenshot_path = await take_screenshot(input.url)
@@ -97,6 +110,7 @@ async def summarize(input: URLInput):
         }
 
 
+# FORCED HUGGING FACE ENDPOINT
 @app.post("/summarize/hf")
 async def summarize_with_hf(input: URLInput):
     print(f"🤖 FORCED HF: {input.url}")
