@@ -45,7 +45,7 @@ textarea {
 .summary-background {
   width: 100%;
   border-radius: 1.25rem;
-  margin: 1.5rem 0;
+  margin: 0 0 1.25rem;
   object-fit: cover;
   display: block;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
@@ -392,4 +392,12 @@ button.twitterblue:focus,
   outline: none !important;
   box-shadow: none !important;
   border-color: #1da1f2 !important;
+}
+
+/* TAKEAWAY RESULT WRAPPER */
+
+.result-wrapper {
+  transform: scale(0.86) translateY(-0.1rem);
+  transform-origin: top center;
+  transition: transform 0.2s ease;
 }

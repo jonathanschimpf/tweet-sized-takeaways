@@ -5,11 +5,15 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 
 import os
+
 from pathlib import Path
 
 # LOAD .env VARIABLES
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env")
 HF_API_TOKEN = os.getenv("HF_API_TOKEN")
+print(f"🔐 Hugging Face token loaded? {'Yes' if HF_API_TOKEN else 'No'}")
+print("✅ .env path:", os.path.abspath(".env"))
+
 
 # INTERNAL MODULES
 from .summarizer import (
@@ -32,7 +36,10 @@ app = FastAPI()
 # CORS CONFIG
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://tweet-sized-takeaways.netlify.app"],
+    allow_origins=[
+        "https://tweet-sized-takeaways.netlify.app",
+        "http://localhost:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
