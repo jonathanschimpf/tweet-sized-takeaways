@@ -29,6 +29,7 @@
 /* INPUTS */
 .custom-input {
   width: 100%;
+  max-width: 315.02px;
   height: 42px;
   background-color: var(--input-bg);
   color: var(--text-color);
@@ -392,6 +393,7 @@ button.twitterblue:focus,
   outline: none !important;
   box-shadow: none !important;
   border-color: #1da1f2 !important;
+  max-width: 135.08px;
 }
 
 /* TAKEAWAY RESULT WRAPPER */
