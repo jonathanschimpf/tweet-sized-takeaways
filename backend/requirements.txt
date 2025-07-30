@@ -14,3 +14,4 @@ nltk==3.9.1
 # === SUMMARIZATION ===
 transformers==4.54.0
 torch==2.2.0
+
