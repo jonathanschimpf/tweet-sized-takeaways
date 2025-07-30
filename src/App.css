@@ -9,17 +9,18 @@
 
 .container {
   width: 100%;
-  max-width: 640px;
+  max-width: 600px;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-bottom: 3em;
 }
 
 /* HEADINGS */
 .title {
   font-weight: bold;
-  font-size: 1.75rem;
+  font-size: 1.55rem;
   white-space: nowrap;
   margin: 0 auto 0.5rem;
   color: inherit;
@@ -29,7 +30,7 @@
 /* INPUTS — ✨ */
 .custom-input {
   width: 100%;
-  max-width: 315.02px;
+  max-width: 275px;
   height: 42px;
   background-color: var(--input-bg);
   color: var(--text-color);
@@ -337,7 +338,7 @@ a:visited {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  font-size: 1.0rem;
   padding: 0 0.5rem;
   color: #212529;
   position: relative;
@@ -398,8 +399,16 @@ button.twitterblue:focus,
 
 /* TAKEAWAY RESULT WRAPPER */
 
+/* DEFAULT MOBILE STYLE – FULL SCALE */
 .result-wrapper {
-  transform: scale(0.86) translateY(-0.1rem);
+  transform: scale(1) translateY(0);
   transform-origin: top center;
   transition: transform 0.2s ease;
+}
+
+/* DESKTOP STYLE – SCALE DOWN ON LARGER VIEWPORTS */
+@media (min-width: 768px) {
+  .result-wrapper {
+    transform: scale(0.65) translateY(-0.1rem);
+  }
 }

@@ -1,0 +1,11 @@
+[build]
+  command = "npm run build"
+  publish = "dist" # or "build" depending on your framework (Vite = dist)
+
+[context.production.environment]
+  NODE_ENV = "production"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"

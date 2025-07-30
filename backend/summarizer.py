@@ -1,4 +1,8 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import re
 import aiohttp
 from bs4 import BeautifulSoup
@@ -17,7 +21,7 @@ async def fetch_html(url: str) -> str:
 
 async def get_best_summary(text: str) -> str:
     if not text.strip():
-        return "🚫 No valid content extracted from the page."
+        return "🚫 There's honestly nothing to summarize on that link. 🚫"
 
     # Use only first ~1000 characters to stay within HF prompt constraints
     prompt = text[:1024]

@@ -17,7 +17,7 @@ import { faTwitter } from "@fortawesome/free-brands-svg-icons";
 import { library } from "@fortawesome/fontawesome-svg-core";
 library.add(faCopy, faTwitter);
 
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 function App() {
   const [htmlInput, setHtmlInput] = useState("");
@@ -77,6 +77,14 @@ function App() {
     }
   };
 
+  const threadsImagesAreStubborn = (e, url) => {
+    const isThreads = url?.includes("threads.net") || url?.includes("threads.com");
+    e.target.onerror = null;
+    e.target.src = isThreads
+      ? "/images/og-fallbacks/threads-og-image-fallback.jpg"
+      : "/images/og-fallbacks/weirdlink.jpg";
+  };
+
   return (
     <Container className="container">
       <Row className="justify-content-center">
@@ -113,86 +121,80 @@ function App() {
               </Button>
             </div>
           </Form>
-          {(ogImage || summary) && (
-            <div className="result-wrapper">
-              {ogImage && (
-                <div className="og-image-container mb-1">
-                  <img
-                    src={ogImage}
-                    alt="Preview"
-                    className="og-image"
-                    loading="lazy"
-                  />
-                </div>
-              )}
+          <div className="result-wrapper">
+            {ogImage && (
+              <img
+                src={ogImage}
+                alt="Preview"
+                className="og-image"
+                loading="lazy"
+                onError={(e) => threadsImagesAreStubborn(e, htmlInput)}
+              />
+            )}
 
-              {summary && (
-                <>
-                  <Card className="mt-4 summary-card">
-                    <Card.Body className="summary-body">
-                      <div className="summary-header">
-                        <span className="summary-label">
-                          📝 280-Character (or less) Takeaway
-                        </span>
+            {summary && (
+              <>
+                <Card className="mt-4 summary-card">
+                  <Card.Body className="summary-body">
+                    <div className="summary-header">
+                      <span className="summary-label">
+                        📝 280-Character (or less) Takeaway
+                      </span>
+                    </div>
+
+                    <Card.Text className="summary-text">{summary}</Card.Text>
+
+                    <div className="summary-icons">
+                      <div className="tooltip-wrapper">
+                        <button
+                          className={`icon-copy-btn${copied ? " copied" : ""}`}
+                          onClick={handleCopy}
+                        >
+                          <FontAwesomeIcon icon={copied ? faTwitter : faCopy} />
+                        </button>
+                        <div className="icon-tooltip">Copy</div>
                       </div>
 
-                      <Card.Text className="summary-text">{summary}</Card.Text>
+                      <div className="tooltip-wrapper bird-tooltip">
+                        <img
+                          src="/images/twitter-died-jetblack.png"
+                          alt="Dead Twitter bird"
+                          className={`black-deadtwitterbird${usedHuggingFace ? " dimmed" : ""}`}
+                        />
+                        <div className="icon-tooltip">xTwitter is dead</div>
+                      </div>
 
-                      <div className="summary-icons">
-                        {/* COPY ICON + TOOLTIP */}
-                        <div className="tooltip-wrapper">
-                          <button
-                            className={`icon-copy-btn${copied ? " copied" : ""}`}
-                            onClick={handleCopy}
-                          >
-                            <FontAwesomeIcon icon={copied ? faTwitter : faCopy} />
-                          </button>
-                          <div className="icon-tooltip">Copy</div>
-                        </div>
-
-                        {/* DEAD TWITTER BIRD + TOOLTIP */}
-                        <div className="tooltip-wrapper bird-tooltip">
-                          <img
-                            src="/images/twitter-died-jetblack.png"
-                            alt="Dead Twitter bird"
-                            className={`black-deadtwitterbird${usedHuggingFace ? " dimmed" : ""}`}
-                          />
-                          <div className="icon-tooltip">xTwitter is dead</div>
-                        </div>
-
-                        {/* HUGGING FACE BUTTON + TOOLTIP */}
-                        <div className="huggingface-wrapper tooltip-wrapper">
-                          <button
-                            className="huggingface-btn"
-                            onClick={() => {
-                              handleSummarize(true);
-                              setShowTooltip(true);
-                              setTimeout(() => setShowTooltip(false), 1000);
-                            }}
-                            disabled={loading || usedHuggingFace}
-                          >
-                            🤗
-                          </button>
-                          <div
-                            className={`icon-tooltip${showTooltip ? " visible" : ""}`}
-                          >
-                            Hugging Face Takeaway
-                          </div>
+                      <div className="huggingface-wrapper tooltip-wrapper">
+                        <button
+                          className="huggingface-btn"
+                          onClick={() => {
+                            handleSummarize(true);
+                            setShowTooltip(true);
+                            setTimeout(() => setShowTooltip(false), 1000);
+                          }}
+                          disabled={loading || usedHuggingFace}
+                        >
+                          🤗
+                        </button>
+                        <div
+                          className={`icon-tooltip${showTooltip ? " visible" : ""}`}
+                        >
+                          Hugging Face Takeaway
                         </div>
                       </div>
-                    </Card.Body>
-                  </Card>
+                    </div>
+                  </Card.Body>
+                </Card>
 
-                  {usedHuggingFace && (
-                    <p className="hf-note text-muted mt-2 text-center">
-                      The Hugging Face summary is up there on the takeaway card. 🤗
-                    </p>
-                  )}
-                </>
-              )}
-            </div>
-          )}
 
+                {usedHuggingFace && (
+                  <p className="hf-note text-muted mt-2 text-center">
+                    The Hugging Face summary is up there on the takeaway card. 🤗
+                  </p>
+                )}
+              </>
+            )}
+          </div>
         </Col>
       </Row>
     </Container>
