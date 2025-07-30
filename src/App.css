@@ -406,7 +406,7 @@ button.twitterblue:focus,
   transition: transform 0.2s ease;
 }
 
-/* DESKTOP STYLE – SCALE DOWN ON LARGER VIEWPORTS */
+/* DESKTOP STYLE – SCALE DOWN ON LARGER VIEWPORTS! */
 @media (min-width: 768px) {
   .result-wrapper {
     transform: scale(0.65) translateY(-0.1rem);
