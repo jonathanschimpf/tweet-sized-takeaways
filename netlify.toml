@@ -1,10 +1,9 @@
 [build]
   command = "npm run build"
-  publish = "build"
+  publish = "dist"
 
-
-[context.production.environment]
-  NODE_ENV = "production"
+[build.environment]
+  NODE_ENV = "development"
 
 [[headers]]
   for = "/*"
