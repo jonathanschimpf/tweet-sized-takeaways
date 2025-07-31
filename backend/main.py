@@ -31,13 +31,6 @@ from .extract import (
 from .blacklist import get_blacklist_category, is_cookie_gated
 from .fallbacks import get_fallback_og
 from .screenshot import take_screenshot
-from .ocr_fallback import (
-    extract_text_from_image,
-    clean_extracted_text,
-    summarize_with_bart,
-    remove_hallucinated_brands,
-)
-
 
 # INITIALIZE FastAPI
 app = FastAPI()
@@ -58,28 +51,23 @@ app.add_middleware(
 public_path = os.path.join(os.path.dirname(__file__), "..", "public")
 app.mount("/static", StaticFiles(directory=public_path), name="static")
 
-
 # HEALTH CHECK
 @app.api_route("/", methods=["GET", "HEAD"])
 def read_root():
     return {"message": "Backend is live"}
 
-
 # Pydantic MODEL
 class URLInput(BaseModel):
     url: str
-
 
 # 280 CHAR TRIMMER
 def trim_to_280(text: str) -> str:
     return text.strip()[:277] + "..." if len(text.strip()) > 280 else text.strip()
 
-
 # CUSTOM SOCIAL MEDIA CHECK
 def is_social_platform(url: str) -> bool:
     hostname = urlparse(url).hostname or ""
     return any(social in hostname for social in ["facebook.com", "threads.net"])
-
 
 # MAIN SUMMARIZATION ENDPOINT
 @app.post("/summarize")
@@ -121,36 +109,12 @@ async def summarize(input: URLInput):
                 "og_image": og_image or get_social_fallback(input.url),
             }
 
-        # FINAL FALLBACK – SCREENSHOT → OCR → BART or image caption
-        print("🧠 Final fallback: screenshot → OCR → BART or image caption")
-        screenshot_path = await take_screenshot(input.url)
-        screenshot_full_path = os.path.join(
-            public_path, "screenshots", screenshot_path.name
-        )
-
-        ocr_text = extract_text_from_image(screenshot_full_path)
-        ocr_clean = clean_extracted_text(ocr_text)
-
-        if len(ocr_clean.split()) >= 10:
-            print("🔤 OCR succeeded, trying BART summarization")
-            bart_summary = summarize_with_bart(ocr_clean)
-            final_output = remove_hallucinated_brands(bart_summary)
-
-            if len(final_output.strip()) >= 30:
-                return {
-                    "summary": trim_to_280(final_output),
-                    "used_huggingface": False,
-                    "og_image": f"/static/screenshots/{screenshot_path.name}",
-                }
-
-        # FALLBACK TO IMAGE CAPTIONING
-        print("🖼️ OCR too weak — using vision model for caption")
-        caption = caption_image(screenshot_full_path)
-
+        # ULTIMATE CATCH
+        print("🧨 All fallbacks failed — returning generic message.")
         return {
-            "summary": trim_to_280(caption),
+            "summary": "🧨 Hugging Face couldn't find enough readable text.",
             "used_huggingface": False,
-            "og_image": f"/static/screenshots/{screenshot_path.name}",
+            "og_image": og_image or get_social_fallback(input.url),
         }
 
     except Exception as e:
@@ -160,7 +124,6 @@ async def summarize(input: URLInput):
             "used_huggingface": False,
             "og_image": get_social_fallback(input.url),
         }
-
 
 # MANUAL HUGGING FACE FORCED ROUTE
 @app.post("/summarize/hf")
@@ -193,18 +156,6 @@ async def summarize_with_hf(input: URLInput):
             "og_image": get_social_fallback(input.url),
         }
 
-
-# SOCIAL FALLBACK IMAGE RESOLVER
-from urllib.parse import urlparse
-import os
-
-# GET BASE URL FOR STATIC LINKS
-BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
-
-# SOCIAL FALLBACK IMAGE RESOLVER
-from urllib.parse import urlparse
-import os
-
 # GET BASE URL FOR STATIC LINKS
 BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 
@@ -219,5 +170,3 @@ def get_social_fallback(url: str) -> str:
         return f"{BASE_URL}/static/images/og-fallbacks/social.jpg"
     
     return f"{BASE_URL}{get_fallback_og('weird')}"
-
-
