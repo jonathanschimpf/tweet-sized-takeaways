@@ -134,13 +134,6 @@ async def summarize_with_hf(input: URLInput):
         html = await fetch_html(input.url)
         text = sanitize_html_for_summary(html)
 
-        if len(text.strip()) < 100:
-            return {
-                "summary": "🧨 Hugging Face couldn't read that to work out a summary for you. Refer to the initial take.",
-                "used_huggingface": False,
-                "og_image": extract_og_image(html) or get_social_fallback(input.url),
-            }
-
         summary = await get_best_summary(text)
         return {
             "summary": trim_to_280(summary),
