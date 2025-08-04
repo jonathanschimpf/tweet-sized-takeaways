@@ -1,5 +1,3 @@
-# ✅ SUMMARIZER.PY (REVISED TO BLOCK CNN.COM HF HALLUCINATION, PREFER RAW CAPTIONS, TRIM FOR HF)
-
 import os
 import re
 import aiohttp
@@ -7,23 +5,21 @@ import sys
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
+# ✅ IMPORT BLOCKLIST TERMS (CASE-INSENSITIVE PARTIAL MATCHES)
+from .barts_hallucination_blocklist import BLOCKED_SUMMARIES
+
 load_dotenv()
 
 HF_API_URL = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
 
-# HALLUCINATION BLOCKLIST
-BLOCKED_SUMMARIES = {
-    "CNN.com will feature iReporter photos in a weekly Travel Snapshots gallery. Please submit your best shots of the U.S. for next week. Visit CNN.com/Travel next Wednesday for a new gallery of snapshots. Click here for more travel photos."
-}
-
-# LOG EXACTLY WHAT HF SEES
+# ✅ LOG EXACTLY WHAT HF SEES
 def log_hf_prompt(prompt: str):
     print("\n📝 HF RAW PROMPT >>>")
     print(prompt)
     print("<<< END PROMPT\n")
     sys.stdout.flush()
 
-# CLEAN META/FB/IG/THREADS CAPTIONS
+# ✅ CLEAN META/FB/IG/THREADS CAPTIONS
 def clean_social_caption(text: str) -> str:
     text = re.sub(r'@[\w.]+', '', text)
     text = re.sub(r'#[\w.]+', '', text)
@@ -34,25 +30,25 @@ def clean_social_caption(text: str) -> str:
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
-# FETCH RAW HTML
+# ✅ FETCH RAW HTML
 async def fetch_html(url: str) -> str:
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
             return await response.text()
 
-# GET BART SUMMARY
+# ✅ GET BART SUMMARY — STRIPS PARTIAL HALLUCINATIONS BUT PRESERVES GOOD CONTENT
 async def get_best_summary(text: str) -> str:
     if not text.strip():
         return "🚫 There's honestly nothing to summarize on that link. 🚫"
 
-    prompt = text.strip()[:1024]
-    log_hf_prompt(prompt)
+    full_prompt = text.strip()[:1024]
+    log_hf_prompt(full_prompt)
 
     headers = {
         "Authorization": f"Bearer {os.getenv('HF_API_TOKEN')}",
         "Content-Type": "application/json",
     }
-    payload = {"inputs": prompt}
+    payload = {"inputs": full_prompt}
 
     async with aiohttp.ClientSession() as session:
         async with session.post(HF_API_URL, headers=headers, json=payload) as resp:
@@ -60,20 +56,32 @@ async def get_best_summary(text: str) -> str:
                 result = await resp.json()
                 if isinstance(result, list) and result and "summary_text" in result[0]:
                     summary = result[0]["summary_text"].strip()
-                    if summary in BLOCKED_SUMMARIES:
-                        print("🚫 BLOCKED HALLUCINATED SUMMARY (CNN.com travel blurb)")
-                        return ""  # force fallback
+                    print("🧠 HF RETURNED >>>", summary)
+
+                    removed_fragments = []
+
+                    for blocked in BLOCKED_SUMMARIES:
+                        pattern = re.compile(re.escape(blocked), flags=re.IGNORECASE)
+                        if re.search(pattern, summary):
+                            summary = pattern.sub("", summary)
+                            removed_fragments.append(blocked)
+
+                    if removed_fragments:
+                        print(f"🚫 REMOVED HALLUCINATED FRAGMENTS >>> {removed_fragments}")
+                        summary = re.sub(r"\s{2,}", " ", summary).strip()
+
                     return summary
+
                 return "🤖 Hugging Face response malformed."
             return f"🛑 Hugging Face error {resp.status}: {await resp.text()}"
 
-# EXTRACT OG IMAGE
+# ✅ EXTRACT OG IMAGE
 def extract_og_image(html: str) -> str:
     from .extract import extract_og_tags
     image, _ = extract_og_tags(html)
     return image
 
-# REMOVE JUNK FOR FALLBACK SUMMARY
+# ✅ REMOVE JUNK FOR FALLBACK SUMMARY
 def sanitize_html_for_summary(html: str) -> str:
     soup = BeautifulSoup(html, "html.parser")
 

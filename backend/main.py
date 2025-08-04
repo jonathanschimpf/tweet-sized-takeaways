@@ -1,5 +1,4 @@
-# THIS IS A GREAT STOPPING POINT FOR THE LOGIC
-# IN ALL CAPS: MAIN FASTAPI BACKEND ENTRYPOINT
+# MAIN FASTAPI BACKEND ENTRYPOINT
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

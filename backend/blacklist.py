@@ -8,15 +8,7 @@ BLACKLISTED_DOMAINS = {
         "cnbc.com",
         "foxnews.com",
     ],
-    FallbackCategory.SOCIAL: [
-        "instagram.com",
-        "facebook.com",
-        "threads.net",
-        "threads.com",
-        "tiktok.com",
-        "linkedin.com",
-        "twitter.com",
-    ],
+    
     FallbackCategory.GOV: [
         # US Federal Agencies
         "usa.gov",
