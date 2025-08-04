@@ -131,7 +131,8 @@ async def summarize_with_hf(input: URLInput):
 
     try:
         html = await fetch_html(input.url)
-        text = sanitize_html_for_summary(html)
+        text = extract_social_content_for_hf(html, input.url)
+
 
         summary = await get_best_summary(text)
         return {
