@@ -104,14 +104,15 @@ def sanitize_html_for_summary(html: str) -> str:
 
     return text.strip()
 
-# ✅ ENHANCED SOCIAL CONTENT EXTRACTION FOR HF
+# ✅ NEW: ENHANCED SOCIAL CONTENT EXTRACTOR FOR HF
 def extract_social_content_for_hf(html: str, url: str) -> str:
     """
-    FOR INSTAGRAM, FACEBOOK, THREADS — TRY TO PRESERVE OG:DESCRIPTION BEFORE FALLING BACK TO SANITIZED HTML
+    Enhanced content extraction for social platforms:
+    Prioritize og:description, then fallback to sanitized HTML.
     """
     soup = BeautifulSoup(html, "html.parser")
 
-    # ✅ INSTAGRAM CONTENT HANDLING
+    # 📸 Instagram
     if "instagram.com" in url.lower():
         og_desc = soup.find("meta", property="og:description")
         if og_desc and og_desc.get("content"):
@@ -119,7 +120,6 @@ def extract_social_content_for_hf(html: str, url: str) -> str:
             if len(content) > 30 and content.lower() != "instagram":
                 print(f"📱 Using Instagram og:description: {content[:100]}...")
                 return content
-
         og_title = soup.find("meta", property="og:title")
         if og_title and og_title.get("content"):
             title_content = og_title["content"].strip()
@@ -127,7 +127,7 @@ def extract_social_content_for_hf(html: str, url: str) -> str:
                 print(f"📱 Using Instagram og:title: {title_content[:100]}...")
                 return title_content
 
-    # ✅ FACEBOOK & THREADS CONTENT HANDLING
+    # 🧵 Facebook & Threads
     elif any(platform in url.lower() for platform in ["facebook.com", "threads.net"]):
         og_desc = soup.find("meta", property="og:description")
         if og_desc and og_desc.get("content"):
@@ -136,6 +136,6 @@ def extract_social_content_for_hf(html: str, url: str) -> str:
                 print(f"📱 Using social og:description: {content[:100]}...")
                 return content
 
-    # ✅ FALLBACK TO SANITIZED HTML
+    # 🧹 Final fallback
     print("🧹 Using sanitized HTML content")
     return sanitize_html_for_summary(html)
