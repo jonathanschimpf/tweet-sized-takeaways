@@ -23,6 +23,7 @@ function App() {
   const [htmlInput, setHtmlInput] = useState("");
   const [summary, setSummary] = useState("");
   const [ogImage, setOgImage] = useState("");
+  const [scrapedText, setScrapedText] = useState(""); // 🧠 TRACK TEXT
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [usedHuggingFace, setUsedHuggingFace] = useState(false);
@@ -38,22 +39,37 @@ function App() {
 
     try {
       const isDev = window.location.hostname === "localhost";
-      const response = await fetch(
-        `${isDev ? "http://localhost:8000" : "https://tweet-sized-takeaways.onrender.com"}/summarize${forceHF ? "/hf" : ""}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: htmlInput }),
-        }
-      );
+      const endpoint = `${isDev ? "http://localhost:8000" : "https://tweet-sized-takeaways.onrender.com"}/summarize${forceHF ? "/hf" : ""}`;
+
+      const payload = forceHF
+        ? { url: htmlInput, text: scrapedText || undefined }
+        : { url: htmlInput };
+
+      console.log("📤 Sending request to:", endpoint);
+      console.log("📦 Payload:", payload);
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
       const data = await response.json();
+      console.log("📬 Response:", data);
+
       setSummary(
         data.summary ||
         "🤗 This website doesn't even like Hugging Face — give it a once over and arrive at a summary of your own. 🤷‍♂️"
       );
       if (data.og_image) setOgImage(data.og_image);
       if (data.used_huggingface) setUsedHuggingFace(true);
+
+      // ✅ STORE SCRAPED TEXT ON NON-HF RUN
+      if (!forceHF && data.scraped_text) {
+        setScrapedText(data.scraped_text);
+        console.log("📚 scraped_text saved to state");
+      }
+
     } catch (err) {
       console.error("🔥 Network error:", err);
       setSummary("💥 Backend unreachable or failed. Check console.");
@@ -75,14 +91,6 @@ function App() {
       e.preventDefault();
       handleSummarize();
     }
-  };
-
-  const threadsImagesAreStubborn = (e, url) => {
-    const isThreads = url?.includes("threads.net") || url?.includes("threads.com");
-    e.target.onerror = null;
-    e.target.src = isThreads
-      ? "/images/og-fallbacks/threads-og-image-fallback.jpg"
-      : "/images/og-fallbacks/weirdlink.jpg";
   };
 
   return (
@@ -121,6 +129,7 @@ function App() {
               </Button>
             </div>
           </Form>
+
           <div className="result-wrapper">
             {ogImage && (
               <img
@@ -128,7 +137,6 @@ function App() {
                 alt="Preview"
                 className="og-image"
                 loading="lazy"
-                onError={(e) => threadsImagesAreStubborn(e, htmlInput)}
               />
             )}
 
@@ -185,7 +193,6 @@ function App() {
                     </div>
                   </Card.Body>
                 </Card>
-
 
                 {usedHuggingFace && (
                   <p className="hf-note text-muted mt-2 text-center">

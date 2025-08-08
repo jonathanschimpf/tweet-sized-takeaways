@@ -11,7 +11,8 @@ HALLUCINATION_BLURBS = {
     "Visit CNN.com/Travel each week for a new gallery of snapshots from around the world.",
     "Visit the gallery each week to see which photos have been selected for next week's gallery.",
     "has been charged with sexual assault",
-    "has a history of sexual assault cases"
+    "has a history of sexual assault cases",
+    "Please submit your best shots of the U.S. for next week. Visit .com/Travel next Wednesday for a new gallery of snapshots. Click here for more travel photos."
 }
 
 BLOCKED_SUMMARIES = HALLUCINATION_BLURBS

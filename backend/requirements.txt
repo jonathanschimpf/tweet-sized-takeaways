@@ -6,12 +6,12 @@ python-dotenv==1.0.1
 beautifulsoup4==4.12.3
 
 # === OCR + NLP ===
-pytesseract==0.3.10
+numpy<2.0.0
 Pillow==10.2.0
+pytesseract==0.3.10
 textblob==0.19.0
 nltk==3.9.1
 
 # === SUMMARIZATION ===
 transformers==4.54.0
 torch==2.2.0
-
