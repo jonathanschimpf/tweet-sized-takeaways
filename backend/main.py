@@ -178,10 +178,6 @@ async def summarize_with_hf(input: URLInput):
 
     try:
         html = await fetch_html(input.url)
-<<<<<<< HEAD
-        text = extract_social_content_for_hf(html, input.url)
-
-=======
         prompt = extract_social_content_for_hf(html, input.url)
 
         # ✨ DEBUG LOG: SHOW PROMPT
@@ -211,7 +207,6 @@ async def summarize_with_hf(input: URLInput):
             if is_threads
             else extract_og_image(html) or get_social_fallback(input.url)
         )
->>>>>>> 17c7ed5 (Pegasus upgrade — Bye BART — you can't come with to the remote '.venv')
 
         return {
             "summary": trim_to_280(summary),

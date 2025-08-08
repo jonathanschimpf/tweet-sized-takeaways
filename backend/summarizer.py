@@ -137,18 +137,6 @@ def sanitize_html_for_summary(html: str) -> str:
     )
     return text.strip()
 
-<<<<<<< HEAD
-# ✅ NEW: ENHANCED SOCIAL CONTENT EXTRACTOR FOR HF
-def extract_social_content_for_hf(html: str, url: str) -> str:
-    """
-    Enhanced content extraction for social platforms:
-    Prioritize og:description, then fallback to sanitized HTML.
-    """
-    soup = BeautifulSoup(html, "html.parser")
-
-    # 📸 Instagram
-    if "instagram.com" in url.lower():
-=======
 
 # ✅ SOCIAL-FIRST SCRAPER
 def extract_social_content_for_hf(html: str, url: str) -> str:
@@ -156,7 +144,6 @@ def extract_social_content_for_hf(html: str, url: str) -> str:
     url_lower = url.lower()
 
     if "instagram.com" in url_lower:
->>>>>>> 17c7ed5 (Pegasus upgrade — Bye BART — you can't come with to the remote '.venv')
         og_desc = soup.find("meta", property="og:description")
         if og_desc and og_desc.get("content"):
             content = og_desc["content"].strip()
@@ -170,12 +157,7 @@ def extract_social_content_for_hf(html: str, url: str) -> str:
                 print(f"📱 Using Instagram og:title: {title_content[:100]}...")
                 return title_content
 
-<<<<<<< HEAD
-    # 🧵 Facebook & Threads
-    elif any(platform in url.lower() for platform in ["facebook.com", "threads.net"]):
-=======
     elif any(platform in url_lower for platform in ["facebook.com", "threads.net"]):
->>>>>>> 17c7ed5 (Pegasus upgrade — Bye BART — you can't come with to the remote '.venv')
         og_desc = soup.find("meta", property="og:description")
         if og_desc and og_desc.get("content"):
             content = og_desc["content"].strip()
@@ -183,9 +165,5 @@ def extract_social_content_for_hf(html: str, url: str) -> str:
                 print(f"📱 Using social og:description: {content[:100]}...")
                 return content
 
-<<<<<<< HEAD
-    # 🧹 Final fallback
-=======
->>>>>>> 17c7ed5 (Pegasus upgrade — Bye BART — you can't come with to the remote '.venv')
     print("🧹 Using sanitized HTML content")
     return sanitize_html_for_summary(html)
