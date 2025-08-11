@@ -14,13 +14,13 @@ dist-ssr/
 *.local
 
 # ─── PYTHON / BACKEND ───
-- venv/
-+ venv/
-+ .venv/
+venv/
+.venv/
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+
 
 
 # ─── ENV / SECRETS ───
