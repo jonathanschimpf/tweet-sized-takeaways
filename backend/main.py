@@ -1,4 +1,4 @@
-# ✅ MAIN FASTAPI BACKEND ENTRYPOINT — PEGASUS-ONLY VERSION
+# ✅ MAIN FASTAPI BACKEND ENTRYPOINT — PEGASUS-LOCKED VERSION
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,24 +28,14 @@ print("✅ .env path:", os.path.abspath(".env"))
 from .summarizer import (
     fetch_html,
     extract_og_image,
-    get_best_summary,
+    get_best_summary,  # <-- builds strict prompt internally
     sanitize_html_for_summary,
-    extract_social_content_for_hf,
+    extract_social_content_for_hf,  # <-- finds og:description/og:title or sanitized text
+    get_ordered_threads_fallback,
 )
-
-from .extract import (
-    extract_og_tags,
-    extract_paragraph_like_block,
-)
-
+from .extract import extract_og_tags, extract_paragraph_like_block
 from .blacklist import get_blacklist_category, is_cookie_gated
-
 from .fallbacks import get_fallback_og
-from .summarizer import get_ordered_threads_fallback  # ✅ BRINGS IN ORDERED LOOP
-
-
-# from .screenshot import take_screenshot — NEVER WAS USED LOL
-
 
 # ✅ CORS CONFIG
 app.add_middleware(
@@ -86,17 +76,16 @@ BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 
 def get_social_fallback(url: str) -> str:
     hostname = urlparse(url).hostname or ""
-
     if "threads.net" in hostname or "threads.com" in hostname:
-        return f"{BASE_URL}{get_ordered_threads_fallback()}"  # ✅ use the cycler
-
+        return f"{BASE_URL}{get_ordered_threads_fallback()}"  # ordered Threads cycle
     if "facebook.com" in hostname:
         return f"{BASE_URL}/images/og-fallbacks/social.jpg"
-
     return f"{BASE_URL}{get_fallback_og('weird')}"
 
 
-# ✅ MAIN SUMMARIZATION ROUTE
+# =========================
+# MAIN SUMMARIZATION ROUTE
+# =========================
 @app.post("/summarize")
 async def summarize(input: URLInput):
     print(f"🔵 URL received: {input.url}")
@@ -104,62 +93,66 @@ async def summarize(input: URLInput):
     try:
         html = await fetch_html(input.url)
         print("🟢 HTML fetched successfully")
-        og_image = extract_og_image(html)  # ✅ ensure this always runs
-        og_image, og_desc = extract_og_tags(html)
 
-        og_image, og_desc = extract_og_tags(html)
+        # Always compute an image early so we have a fallback ready
+        og_img_extracted = extract_og_image(html)
         hostname = urlparse(input.url).hostname or ""
         is_threads = "threads.net" in hostname or "threads.com" in hostname
 
-        # ✅ FORCE THREADS TO USE FALLBACK IMAGE
+        # Prefer author-provided OG description if it looks decent
+        og_image, og_desc = extract_og_tags(html)
         if og_desc and len(og_desc.strip()) >= 30:
             print("🟠 Using og:description")
-            final_og_image = (
+            final_img = (
                 get_social_fallback(input.url)
                 if is_threads
-                else og_image or get_social_fallback(input.url)
+                else (og_image or og_img_extracted or get_social_fallback(input.url))
             )
             return {
                 "summary": trim_to_280(og_desc),
                 "used_huggingface": False,
-                "og_image": final_og_image,
+                "og_image": final_img,
             }
 
+        # Next: native paragraph-like scrape (your custom heuristic)
         native = extract_paragraph_like_block(html)
         print(f"🟡 Native text extracted: {native[:300]}")
         if len(native.strip()) >= 100:
             print("🟠 Using native scrape")
-            final_og_image = (
+            final_img = (
                 get_social_fallback(input.url)
                 if is_threads
-                else og_image or get_social_fallback(input.url)
+                else (og_image or og_img_extracted or get_social_fallback(input.url))
             )
             return {
                 "summary": trim_to_280(native),
                 "used_huggingface": False,
-                "og_image": final_og_image,
+                "og_image": final_img,
             }
 
-        print("🔁 Falling back to Hugging Face T5")
-        summary = await get_best_summary(native)
+        # Final: Pegasus (META-FIRST input)
+        print("🔁 Falling back to Hugging Face Pegasus")
+        source_text = extract_social_content_for_hf(html, input.url)
+        summary = await get_best_summary(source_text)  # <-- pass meta/source text
+
         if summary and len(summary.strip()) >= 30:
-            final_og_image = (
+            final_img = (
                 get_social_fallback(input.url)
                 if is_threads
-                else og_image or get_social_fallback(input.url)
+                else (og_image or og_img_extracted or get_social_fallback(input.url))
             )
             return {
                 "summary": trim_to_280(summary),
                 "used_huggingface": True,
-                "og_image": final_og_image,
+                "og_image": final_img,
             }
 
         print("🧸 All fallbacks failed — returning generic message.")
-        final_og_image = get_social_fallback(input.url)
+        final_img = get_social_fallback(input.url)
         return {
             "summary": "🧸 Hugging Face couldn't find enough readable text.",
             "used_huggingface": False,
-            "og_image": final_og_image,
+            "og_image": final_img,
         }
 
     except Exception as e:
@@ -171,30 +164,25 @@ async def summarize(input: URLInput):
         }
 
 
-# ✅ MANUAL FORCED HF T5/PEGASUS ROUTE
+# =========================
+# MANUAL PEGASUS ROUTE
+# =========================
 @app.post("/summarize/hf")
 async def summarize_with_hf(input: URLInput):
     print(f"🤖 FORCED HF: {input.url}")
 
     try:
         html = await fetch_html(input.url)
-        prompt = extract_social_content_for_hf(html, input.url)
 
-        # ✨ DEBUG LOG: SHOW PROMPT
-        print("\n🧹 Using sanitized HTML content\n")
-        print("📝 HF RAW PROMPT >>>")
-        print(f"summarize: {prompt}")
-        print("<<< END PROMPT\n")
+        # Source text for Pegasus (og:description/og:title or sanitized html)
+        source_text = extract_social_content_for_hf(html, input.url)
 
-        # 🔁 TRY PEGASUS UP TO 3 TIMES
+        # Retry Pegasus a few times in case the model is cold
         max_retries = 3
         summary = None
-        attempt = 0
-
-        while attempt < max_retries:
-            attempt += 1
+        for attempt in range(1, max_retries + 1):
             print(f"🔁 Pegasus attempt {attempt}...")
-            summary = await get_best_summary(prompt)
+            summary = await get_best_summary(source_text)  # <-- NO 'summarize:' prompts
             if summary and len(summary.strip()) >= 30:
                 break
 
@@ -202,16 +190,16 @@ async def summarize_with_hf(input: URLInput):
 
         hostname = urlparse(input.url).hostname or ""
         is_threads = "threads.net" in hostname or "threads.com" in hostname
-        final_og_image = (
+        final_img = (
             get_social_fallback(input.url)
             if is_threads
-            else extract_og_image(html) or get_social_fallback(input.url)
+            else (extract_og_image(html) or get_social_fallback(input.url))
         )
 
         return {
-            "summary": trim_to_280(summary),
+            "summary": trim_to_280(summary or "🤷‍♂️ No summary available."),
             "used_huggingface": True,
-            "og_image": final_og_image,
+            "og_image": final_img,
         }
 
     except Exception as e:

@@ -1,0 +1,21 @@
+/* SPINNER STYLING */
+.tst-spinner {
+    display: inline-block;
+    animation: tst-spin 0.8s linear infinite;
+    transform-origin: center;
+    transform-box: fill-box;
+}
+
+@keyframes tst-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.tst-spinner-track {
+    opacity: .25;
+}
+
+.tst-spinner-arc {
+    opacity: .75;
+}

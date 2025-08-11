@@ -1,4 +1,5 @@
 import { useState } from "react";
+import TstSpinner from "./components/Spinner"; // ← custom spinner
 import "bootstrap/dist/css/bootstrap.min.css";
 import {
   Container,
@@ -7,8 +8,7 @@ import {
   Card,
   Row,
   Col,
-  Spinner,
-} from "react-bootstrap";
+} from "react-bootstrap"; // ← removed Spinner from here
 import "./App.css";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -69,7 +69,6 @@ function App() {
         setScrapedText(data.scraped_text);
         console.log("📚 scraped_text saved to state");
       }
-
     } catch (err) {
       console.error("🔥 Network error:", err);
       setSummary("💥 Backend unreachable or failed. Check console.");
@@ -118,11 +117,7 @@ function App() {
                 disabled={loading}
               >
                 {loading ? (
-                  <Spinner
-                    animation="border"
-                    size="sm"
-                    style={{ color: "#1da1f2", borderWidth: "0.15em" }}
-                  />
+                  <TstSpinner size={16} /> // ← uses your component
                 ) : (
                   "Summarize"
                 )}
@@ -167,7 +162,8 @@ function App() {
                         <img
                           src="/images/twitter-died-jetblack.png"
                           alt="Dead Twitter bird"
-                          className={`black-deadtwitterbird${usedHuggingFace ? " dimmed" : ""}`}
+                          className={`black-deadtwitterbird${usedHuggingFace ? " dimmed" : ""
+                            }`}
                         />
                         <div className="icon-tooltip">xTwitter is dead</div>
                       </div>
@@ -185,7 +181,8 @@ function App() {
                           🤗
                         </button>
                         <div
-                          className={`icon-tooltip${showTooltip ? " visible" : ""}`}
+                          className={`icon-tooltip${showTooltip ? " visible" : ""
+                            }`}
                         >
                           Hugging Face Takeaway
                         </div>
@@ -196,7 +193,8 @@ function App() {
 
                 {usedHuggingFace && (
                   <p className="hf-note text-muted mt-2 text-center">
-                    The Hugging Face summary is up there on the takeaway card. 🤗
+                    The Hugging Face summary is up there on the takeaway card.
+                    🤗
                   </p>
                 )}
               </>

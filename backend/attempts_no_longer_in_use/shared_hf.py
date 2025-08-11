@@ -9,7 +9,8 @@ from .bartshallucinationblacklist import HALLUCINATION_BLURBS
 
 load_dotenv()
 
-HF_API_URL = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
+HF_API_URL = "https://api-inference.huggingface.co/models/tuner007/pegasus_paraphrase"
+
 
 def log_hf_prompt(prompt: str):
     print("\n📝 HF RAW PROMPT >>>")
@@ -17,15 +18,18 @@ def log_hf_prompt(prompt: str):
     print("<<< END PROMPT\n")
     sys.stdout.flush()
 
+
 def is_hallucinated_summary(summary: str) -> bool:
     normalized = summary.lower().strip()
     return any(phrase.lower() in normalized for phrase in HALLUCINATION_BLURBS)
+
 
 def trim_to_tweet(summary: str, limit: int = 280) -> str:
     if len(summary) <= limit:
         return summary
     trimmed = summary[:277].rsplit(" ", 1)[0].strip()
     return trimmed + "..."
+
 
 async def get_best_summary(text: str) -> str:
     if not text.strip():
@@ -53,7 +57,9 @@ async def get_best_summary(text: str) -> str:
                 if isinstance(result, list) and result and "summary_text" in result[0]:
                     summary = result[0]["summary_text"]
                     if is_hallucinated_summary(summary):
-                        print("🚫 BLOCKED HALLUCINATED SUMMARY — returning prompt instead.")
+                        print(
+                            "🚫 BLOCKED HALLUCINATED SUMMARY — returning prompt instead."
+                        )
                         return trim_to_tweet(prompt)
                     return trim_to_tweet(summary)
                 return "🤖 Hugging Face response malformed."
