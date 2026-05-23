@@ -1,307 +1,488 @@
+# backend/summarizer.py
+# ------------------------------------------------------------
+# OPEN GRAPH FIRST. HF SUMMARIZATION IS OPTIONAL + EXPLICIT.
+# NO SOCIAL FALLBACK. TWO IMAGE FALLBACKS ONLY.
+# ------------------------------------------------------------
+
 import os
 import re
 import sys
 import json
 import aiohttp
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse
 from dotenv import load_dotenv
-from itertools import cycle
+from urllib.parse import urlparse
 
-# ---- PEGASUS PROMPT HELPERS ----
+from .fallbacks import (
+    next_threads_fallback,
+    next_twitter_fallback,
+    next_weirdlink_pair,
+)
 from .pegasusprompt import (
     build_pegasus_prompt,
     enforce_source_vocab,
     trim_to_280,
 )
 
-# ---- ENV / DEBUG ----
 load_dotenv()
+
+# ------------------------------------------------------------
+# DEBUGGING
+# ------------------------------------------------------------
+# SET ONE OF THESE IN backend/.env IF YOU WANT NOISE:
+#   DEBUG_SUMMARY=1          (GENERAL FLOW LOGS)
+#   DEBUG_OG=1               (OG TAG LOGS + CLEANING)
+#   DEBUG_HF=1               (HF PROMPT + HF CALL LOGS)
+#
+# EXAMPLE:
+#   DEBUG_OG=1
+#   DEBUG_SUMMARY=1
+# ------------------------------------------------------------
+
+DEBUG_SUMMARY = os.getenv("DEBUG_SUMMARY", "0") == "1"
+DEBUG_OG = os.getenv("DEBUG_OG", "0") == "1"
 DEBUG_HF = os.getenv("DEBUG_HF", "0") == "1"
 
-# ---- LIMITS ----
-INPUT_CHAR_CAP = 500  # hard cap for text we send into the prompt
 
-# ---- HF MODEL ROLL (your requested order) ----
+def _dbg(msg: str):
+    if DEBUG_SUMMARY or DEBUG_OG or DEBUG_HF:
+        print(msg)
+        sys.stdout.flush()
+
+
+def _dbg_og(msg: str):
+    if DEBUG_OG:
+        print(msg)
+        sys.stdout.flush()
+
+
+def _dbg_hf(msg: str):
+    if DEBUG_HF:
+        print(msg)
+        sys.stdout.flush()
+
+
+def _cap(s: str, n: int = 240) -> str:
+    s = (s or "").replace("\n", " ").strip()
+    return (s[:n] + "…") if len(s) > n else s
+
+
+# ------------------------------------------------------------
+# CONSTANTS
+# ------------------------------------------------------------
+
+INPUT_CHAR_CAP = 500
+SHORT_COPY_LEN = 25
+
 HF_MODEL_ROLL = [
-    "google/pegasus-cnn_dailymail",  # short, safer summarizer
-    "facebook/bart-large-cnn",  # deterministic-ish when input is short
+    "google/pegasus-cnn_dailymail",
+    "facebook/bart-large-cnn",
 ]
+
 PIPELINE_BASE = "https://api-inference.huggingface.co/pipeline/text2text-generation"
 MODELS_BASE = "https://api-inference.huggingface.co/models"
 
-# ---- THREADS FALLBACK IMAGE CYCLER ----
-THREADS_OG_DIR = "public/images/og-fallbacks/threads"
-_threads_fallback_cycle = None
+DEFAULT_HEADERS = {
+    # SOME SITES (INCLUDING META PROPERTIES) BEHAVE BETTER WITH A UA.
+    "User-Agent": "Tweet-Sized-Takeaways/1.0 (+local dev)",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+}
+
+# ------------------------------------------------------------
+# REGEX (COMPILED ONCE)
+# ------------------------------------------------------------
+# TARGETS IG OG:DESCRIPTION PREFIX LIKE:
+#   "schimpfstagram on December 11, 2025: "
+# ALSO HANDLES:
+#   "username on Dec 11, 2025:"
+#   "username on September 1, 2025"
+# ------------------------------------------------------------
+
+IG_PREFIX_RE = re.compile(
+    r"^\s*[A-Za-z0-9_.]+\s+on\s+"
+    r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec|"
+    r"January|February|March|April|May|June|July|August|September|"
+    r"October|November|December)"
+    r"\s+\d{1,2},?\s+\d{4}:?\s*",
+    re.IGNORECASE,
+)
+
+IG_STATS_PREFIX_RE = re.compile(
+    r"^\s*(?:[\d,.]+(?:\.\d+)?[KMB]?\s+likes?,\s*)?"
+    r"[\d,.]+(?:\.\d+)?[KMB]?\s+comments?\s*[-–—]\s*",
+    re.IGNORECASE,
+)
+
+LIKED_BY_RE = re.compile(r"Liked by .*?(?: and \d+ others)?", re.IGNORECASE)
+LIKES_COUNT_RE = re.compile(r"\b\d[\d,]*\s+likes\b", re.IGNORECASE)
+TIME_AGO_RE = re.compile(r"\b\d{1,2}[smhdw]\s+ago\b", re.IGNORECASE)
+DATE_RE = re.compile(
+    r"\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]* "
+    r"\d{1,2},?\s+\d{4}\b",
+    re.IGNORECASE,
+)
+
+MENTION_RE = re.compile(r"@[\w.]+")
+HASHTAG_RE = re.compile(r"#[\w.]+")
+WHITESPACE_RE = re.compile(r"\s+")
 
 
-def get_ordered_threads_fallback() -> str:
-    """Return next numbered Threads fallback image path (relative to /images)."""
-    global _threads_fallback_cycle
-    if _threads_fallback_cycle is None:
-        files = sorted(
-            f
-            for f in os.listdir(THREADS_OG_DIR)
-            if f.lower().endswith((".jpg", ".png")) and f[0].isdigit()
-        )
-        if not files:
-            return "/images/og-fallbacks/weirdlink.jpg"
-        _threads_fallback_cycle = cycle(files)
-    return f"/images/og-fallbacks/threads/{next(_threads_fallback_cycle)}"
+# ------------------------------------------------------------
+# TEXT CLEANING
+# ------------------------------------------------------------
 
 
-def get_social_fallback(url: str) -> str:
-    hostname = urlparse(url).hostname or ""
-    if "threads.net" in hostname or "threads.com" in hostname:
-        return get_ordered_threads_fallback()
-    return f"{os.getenv('BASE_URL')}/images/og-fallbacks/weirdlink.jpg"
-
-
-# ---- DEBUG PROMPT LOGGER ----
-def log_hf_prompt(prompt: str):
-    print("\n📝 HF RAW PROMPT >>>")
-    print(prompt)
-    print("<<< END PROMPT\n")
-    sys.stdout.flush()
-
-
-# ---- SCRUB SOCIAL CAPTIONS (handy utility) ----
 def clean_social_caption(text: str) -> str:
-    text = re.sub(r"@[\w.]+", "", text)
-    text = re.sub(r"#[\w.]+", "", text)
-    text = re.sub(r"Liked by .*", "", text)
-    text = re.sub(r"\d+\s+likes", "", text, flags=re.IGNORECASE)
-    text = re.sub(r"\b\d{1,2}[smhdw] ago\b", "", text)
-    text = re.sub(
-        r"\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2},? \d{4}\b",
-        "",
-        text,
-    )
-    return re.sub(r"\s+", " ", text).strip()
+    if not text:
+        return ""
+
+    raw = text
+
+    text = IG_STATS_PREFIX_RE.sub("", text, count=1)
+
+    # STRIP IG PREFIX FIRST
+    m = IG_PREFIX_RE.match(text)
+    if m:
+        _dbg_og(f"🧼 IG_PREFIX_RE MATCH -> '{_cap(m.group(0), 120)}'")
+        text = IG_PREFIX_RE.sub("", text, count=1)
+    else:
+        _dbg_og("🧼 IG_PREFIX_RE NO MATCH")
+
+    # THEN STRIP COMMON SOCIAL NOISE
+    text = MENTION_RE.sub("", text)
+    text = HASHTAG_RE.sub("", text)
+    text = LIKED_BY_RE.sub("", text)
+    text = LIKES_COUNT_RE.sub("", text)
+    text = TIME_AGO_RE.sub("", text)
+    text = DATE_RE.sub("", text)
+
+    text = WHITESPACE_RE.sub(" ", text).strip()
+    if len(text) >= 2 and text[0] == text[-1] and text[0] in {"'", '"'}:
+        text = text[1:-1].strip()
+
+    if DEBUG_OG:
+        _dbg_og(f"🧼 CLEAN_SOCIAL_CAPTION RAW    -> '{_cap(raw)}'")
+        _dbg_og(f"🧼 CLEAN_SOCIAL_CAPTION CLEAN  -> '{_cap(text)}'")
+
+    return text
 
 
-# ---- FETCH HTML (used by main.py) ----
+# ------------------------------------------------------------
+# FETCH
+# ------------------------------------------------------------
+
+
 async def fetch_html(url: str) -> str:
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            return await response.text()
+    url = (url or "").strip()
+    timeout = aiohttp.ClientTimeout(total=15)
+    async with aiohttp.ClientSession(
+        timeout=timeout, headers=DEFAULT_HEADERS
+    ) as session:
+        try:
+            async with session.get(url, allow_redirects=True) as resp:
+                _dbg(f"🌐 FETCH {url} -> STATUS {resp.status}")
+                if resp.status != 200:
+                    body = await resp.text()
+                    _dbg(f"🌐 FETCH NON-200 BODY (CAP) -> '{_cap(body)}'")
+                    return body or ""
+                return await resp.text()
+        except Exception as e:
+            _dbg(f"🌐 FETCH EXCEPTION -> {e}")
+            return ""
 
 
-# ---- OOV DEBUGGER ----
-def _oov_tokens(candidate: str, source: str):
-    src_vocab = set(
-        t.lower() for t in re.findall(r"[A-Za-z0-9]+(?:'[A-Za-z0-9]+)?", source or "")
+# ------------------------------------------------------------
+# VALIDATION / HELPERS
+# ------------------------------------------------------------
+
+
+def _valid_content(s: str) -> bool:
+    if not s:
+        return False
+
+    s_clean = s.strip().strip("\"'.").lower()
+    if s_clean in {"instagram", "facebook", "threads", "twitter", "x"}:
+        return False
+
+    if _looks_like_threads_chrome(s_clean):
+        return False
+
+    if len(s_clean) < 30:
+        return False
+
+    return len(re.findall(r"[A-Za-z]{3,}", s)) >= 6
+
+
+def _looks_like_threads_chrome(text: str) -> bool:
+    lower = (text or "").lower()
+    nav_hits = sum(
+        phrase in lower
+        for phrase in (
+            "home search",
+            "create notifications profile",
+            "back thread",
+            "like comment repost share",
+            "log in or sign up for threads",
+            "see what people are talking about",
+            "instagram log in with username",
+            "threads terms",
+        )
     )
-    cand = re.findall(r"[A-Za-z0-9]+(?:'[A-Za-z0-9]+)?", candidate or "")
-    return [t for t in cand if t.lower() not in src_vocab]
+    return nav_hits >= 2
+
+
+def _is_twitter_url(url: str) -> bool:
+    url = (url or "").strip()
+    parseable = url if re.match(r"^[a-z][a-z0-9+.-]*://", url, re.I) else f"https://{url}"
+    host = (urlparse(parseable).netloc or "").lower()
+    host = host[4:] if host.startswith("www.") else host
+    return (
+        host == "x.com"
+        or host.endswith(".x.com")
+        or host == "twitter.com"
+        or host.endswith(".twitter.com")
+    )
 
 
 def _cap_to(text: str, n: int) -> str:
     if len(text) <= n:
         return text
     cut = text[:n]
-    # try to cut at sentence/word boundary
-    for sep in [r"(?s)(.*?[.!?])\s", r"(.*)\s"]:
-        m = re.match(sep, cut)
-        if m and m.group(1):
-            return m.group(1).strip()
-    return cut.strip()
+    m = re.match(r"(?s)(.*?[.!?])\s", cut)
+    return m.group(1).strip() if m else cut.strip()
 
 
-def _valid_content(s: str) -> bool:
-    if not s:
-        return False
-    s_clean = s.strip().strip("\"'.").lower()
-    if s_clean in {"instagram", "facebook", "threads", "twitter", "x"}:
-        return False
-    if len(s_clean) < 30:
-        return False
-    wordlike = re.findall(r"[A-Za-z]{3,}", s)
-    return len(wordlike) >= 6
+def _get_hf_token() -> str:
+    # YOUR IOS NOTE USES HF_ACCESS_TOKEN, SO SUPPORT THAT FIRST.
+    # (KEEP HF_API_TOKEN AS FALLBACK SO OLD ENV FILES STILL WORK.)
+    return (os.getenv("HF_ACCESS_TOKEN") or os.getenv("HF_API_TOKEN") or "").strip()
 
 
-# ---- PEGASUS CALL (meta -> prompt -> HF -> clamp -> trim) ----
-async def get_best_summary(meta_text: str) -> str:
+# ------------------------------------------------------------
+# HF (ONLY WHEN CALLED)
+# ------------------------------------------------------------
+
+
+async def get_best_summary(meta_text: str, default_weird_msg: str | None = None) -> str:
     meta_text = (meta_text or "").strip()
+
     if not meta_text:
-        return "🚫 There's honestly nothing to summarize on that link. 🚫"
+        msg = default_weird_msg or next_weirdlink_pair()[1]
+        _dbg_hf(f"🌀 HF CALLED WITH EMPTY META -> RETURNING WEIRD MSG: '{_cap(msg)}'")
+        return msg
 
-    # HARD CAP the input that goes into the prompt
-    capped_meta = _cap_to(meta_text, INPUT_CHAR_CAP)
+    if len(meta_text) <= SHORT_COPY_LEN:
+        _dbg_hf(f"🧾 HF PASSTHROUGH SHORT ({len(meta_text)} CHARS)")
+        return meta_text
 
-    prompt = build_pegasus_prompt(capped_meta)
-    log_hf_prompt(prompt)
+    capped = _cap_to(meta_text, INPUT_CHAR_CAP)
+    prompt = build_pegasus_prompt(capped)
+
+    _dbg_hf("📝 HF PROMPT (CAP) -> " + _cap(prompt, 500))
+
+    token = _get_hf_token()
+    if not token:
+        msg = default_weird_msg or next_weirdlink_pair()[1]
+        _dbg_hf("⚠️  HF TOKEN MISSING (HF_ACCESS_TOKEN / HF_API_TOKEN) -> FALLBACK")
+        return msg
 
     headers = {
-        "Authorization": f"Bearer {os.getenv('HF_API_TOKEN')}",
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
-    gen_params = {
-        "do_sample": False,
-        "num_beams": 5,
-        "early_stopping": True,
-        "max_new_tokens": 60,
-        "no_repeat_ngram_size": 3,
-        "length_penalty": 1.0,
+
+    payload = {
+        "inputs": prompt,
+        "parameters": {
+            "do_sample": False,
+            "num_beams": 5,
+            "max_new_tokens": 60,
+            "no_repeat_ngram_size": 3,
+            "early_stopping": True,
+        },
+        "options": {"wait_for_model": True},
     }
 
-    async with aiohttp.ClientSession() as session:
+    timeout = aiohttp.ClientTimeout(total=25)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         for model in HF_MODEL_ROLL:
-            payload = {
-                "inputs": prompt,
-                "parameters": gen_params,
-                "options": {"wait_for_model": True},
-            }
+            for base in (PIPELINE_BASE, MODELS_BASE):
+                url = f"{base}/{model}"
+                try:
+                    _dbg_hf(f"🤖 HF POST -> {url}")
+                    async with session.post(url, headers=headers, json=payload) as r:
+                        if r.status != 200:
+                            body = await r.text()
+                            _dbg_hf(f"⚠️  HF {r.status} (CAP) -> '{_cap(body)}'")
+                            continue
 
-            # 1) Try the pipeline endpoint
-            url = f"{PIPELINE_BASE}/{model}"
-            try:
-                async with session.post(url, headers=headers, json=payload) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        text = None
+                        data = await r.json()
                         if (
-                            isinstance(data, list)
-                            and data
-                            and isinstance(data[0], dict)
+                            not isinstance(data, list)
+                            or not data
+                            or not isinstance(data[0], dict)
                         ):
-                            text = data[0].get("generated_text") or data[0].get(
-                                "summary_text"
-                            )
+                            _dbg_hf(f"⚠️  HF UNEXPECTED JSON SHAPE -> {type(data)}")
+                            continue
+
+                        text = data[0].get("summary_text") or data[0].get(
+                            "generated_text"
+                        )
                         if text:
-                            raw = text.strip()
-                            clamped = enforce_source_vocab(raw, capped_meta)
-                            if DEBUG_HF:
-                                removed = _oov_tokens(raw, capped_meta)
-                                if removed:
-                                    print(
-                                        f"🧹 OOV removed ({len(removed)}): {removed[:20]}"
-                                    )
-                            return trim_to_280(clamped)
-                    elif resp.status == 404:
-                        print(f"⚠️  HF {model} (pipeline) -> 404 Not Found")
-                    else:
-                        body = await resp.text()
-                        print(f"⚠️  HF {model} (pipeline) -> {resp.status}: {body}")
-            except Exception as e:
-                print(f"⚠️  HF {model} (pipeline) exception: {e}")
-
-            # 2) Fallback to legacy /models endpoint
-            url = f"{MODELS_BASE}/{model}"
-            try:
-                async with session.post(url, headers=headers, json=payload) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        text = None
-                        if (
-                            isinstance(data, list)
-                            and data
-                            and isinstance(data[0], dict)
-                        ):
-                            text = data[0].get("generated_text") or data[0].get(
-                                "summary_text"
+                            out = trim_to_280(
+                                enforce_source_vocab(text.strip(), capped)
                             )
-                        if text:
-                            raw = text.strip()
-                            clamped = enforce_source_vocab(raw, capped_meta)
-                            if DEBUG_HF:
-                                removed = _oov_tokens(raw, capped_meta)
-                                if removed:
-                                    print(
-                                        f"🧹 OOV removed ({len(removed)}): {removed[:20]}"
-                                    )
-                            return trim_to_280(clamped)
-                    elif resp.status == 404:
-                        print(f"⚠️  HF {model} -> 404 Not Found")
-                    else:
-                        body = await resp.text()
-                        print(f"⚠️  HF {model} -> {resp.status}: {body}")
-            except Exception as e:
-                print(f"⚠️  HF {model} exception: {e}")
+                            _dbg_hf(
+                                f"✅ HF SUCCESS ({len(out)} CHARS) -> '{_cap(out)}'"
+                            )
+                            return out
+                except Exception as e:
+                    _dbg_hf(f"⚠️  HF EXCEPTION -> {e}")
+                    continue
 
-    return "🧸 Hugging Face couldn't read this article right now."
+    msg = default_weird_msg or next_weirdlink_pair()[1]
+    _dbg_hf(f"🧸 HF FAILED ENTIRELY -> FALLBACK: '{_cap(msg)}'")
+    return msg
 
 
-# ---- OG IMAGE EXTRACTOR ----
-def extract_og_image(html: str) -> str:
-    from .extract import extract_og_tags
-
-    image, _ = extract_og_tags(html)
-    return image
+# ------------------------------------------------------------
+# HTML SANITIZATION (LAST RESORT TEXT SOURCE)
+# ------------------------------------------------------------
 
 
-# ---- SANITIZER ----
 def sanitize_html_for_summary(html: str) -> str:
-    soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(html or "", "html.parser")
+
     for tag in soup(
-        ["script", "style", "nav", "header", "footer", "noscript", "aside"]
+        ["script", "style", "nav", "header", "footer", "aside", "noscript"]
     ):
         tag.decompose()
-    for attr in ["id", "class"]:
-        for bad in ["skip", "accessibility", "nav", "menu", "footer", "header"]:
-            for el in soup.find_all(attrs={attr: re.compile(bad, re.I)}):
-                el.decompose()
-    text = soup.get_text(separator=" ", strip=True)
-    text = re.sub(r"\s+", " ", text)
-    text = re.sub(
-        r"(Navigation Menu|Skip to main content|Keyboard shortcuts|Accessibility links).*$",
-        "",
-        text,
-        flags=re.I,
-    )
-    return text.strip()
+
+    text = soup.get_text(" ", strip=True)
+    text = WHITESPACE_RE.sub(" ", text).strip()
+    cleaned = clean_social_caption(text)
+
+    _dbg_og(f"🧹 SANITIZE_HTML TEXT (CAP) -> '{_cap(text)}'")
+    _dbg_og(f"🧹 SANITIZE_HTML CLEAN (CAP) -> '{_cap(cleaned)}'")
+
+    return cleaned
 
 
-# ---- SOCIAL-FIRST META/OG DESC PICKER ----
+# ------------------------------------------------------------
+# SOCIAL EXTRACTION (OG FIRST, ALWAYS CLEANED)
+# NOTE: THIS FUNCTION IS USED TO PRODUCE THE INPUT TEXT (OG DESC/TITLE)
+# BEFORE HF IS EVER INVOLVED.
+# ------------------------------------------------------------
+
+
 def extract_social_content_for_hf(html: str, url: str) -> str:
-    soup = BeautifulSoup(html, "html.parser")
-    url_lower = url.lower()
+    soup = BeautifulSoup(html or "", "html.parser")
+    url_l = (url or "").lower()
 
-    # Instagram: prefer og:description, then og:title, then JSON-LD caption
-    if "instagram.com" in url_lower:
-        og_desc = soup.find("meta", property="og:description")
-        if og_desc and og_desc.get("content"):
-            content = clean_social_caption(og_desc["content"].strip())
-            if _valid_content(content) and content.lower() != "instagram":
-                print(f"📱 Using Instagram og:description: {content[:100]}...")
-                return content
+    _dbg_og(f"🔎 EXTRACT_SOCIAL_CONTENT URL -> {url}")
 
-        og_title = soup.find("meta", property="og:title")
-        if og_title and og_title.get("content"):
-            content = og_title["content"].strip()
-            if _valid_content(content) and content.lower() != "instagram":
-                print(f"📱 Using Instagram og:title: {content[:100]}...")
-                return content
+    def cleaned(val: str) -> str:
+        return clean_social_caption((val or "").strip())
 
-        # JSON-LD fallback (some IG pages embed caption here)
+    # INSTAGRAM
+    if "instagram.com" in url_l:
+        for prop in ("og:description", "og:title"):
+            tag = soup.find("meta", property=prop)
+            if tag and tag.get("content"):
+                raw = tag["content"]
+                text = cleaned(raw)
+                _dbg_og(f"📌 IG {prop.upper()} RAW   -> '{_cap(raw)}'")
+                _dbg_og(f"📌 IG {prop.upper()} CLEAN -> '{_cap(text)}'")
+
+                if _valid_content(text) or len(text) <= SHORT_COPY_LEN:
+                    _dbg_og(f"✅ PICKED {prop} ({len(text)} CHARS)")
+                    return text
+                else:
+                    _dbg_og(f"⛔ REJECTED {prop} (NOT VALID)")
+
+        # JSON-LD (RARELY PRESENT FOR IG NOW, BUT KEEP IT)
         for s in soup.find_all("script", type="application/ld+json"):
             try:
                 data = json.loads(s.string or "")
                 if isinstance(data, list) and data:
                     data = data[0]
-                if isinstance(data, dict):
-                    for key in ("caption", "description", "headline", "articleBody"):
-                        val = data.get(key)
-                        if isinstance(val, str):
-                            val = clean_social_caption(val.strip())
-                            if _valid_content(val):
-                                print(
-                                    f"📱 Using Instagram JSON-LD {key}: {val[:100]}..."
-                                )
-                                return val
-            except Exception:
+                if not isinstance(data, dict):
+                    continue
+
+                for k in ("caption", "description", "articleBody", "headline"):
+                    if isinstance(data.get(k), str):
+                        raw = data[k]
+                        text = cleaned(raw)
+                        _dbg_og(f"📌 IG JSON-LD {k.upper()} RAW   -> '{_cap(raw)}'")
+                        _dbg_og(f"📌 IG JSON-LD {k.upper()} CLEAN -> '{_cap(text)}'")
+
+                        if _valid_content(text) or len(text) <= SHORT_COPY_LEN:
+                            _dbg_og(f"✅ PICKED JSON-LD {k} ({len(text)} CHARS)")
+                            return text
+                        else:
+                            _dbg_og(f"⛔ REJECTED JSON-LD {k} (NOT VALID)")
+            except Exception as e:
+                _dbg_og(f"⚠️  JSON-LD PARSE ERROR -> {e}")
                 pass
 
-    # Facebook / Threads: og:description usually good
-    elif any(p in url_lower for p in ["facebook.com", "threads.net", "threads.com"]):
-        og_desc = soup.find("meta", property="og:description")
-        if og_desc and og_desc.get("content"):
-            content = clean_social_caption(og_desc["content"].strip())
-            if _valid_content(content):
-                print(f"📱 Using social og:description: {content[:100]}...")
-                return content
+    # FACEBOOK / THREADS (AND GENERIC META OG:DESCRIPTION)
+    if any(p in url_l for p in ("facebook.com", "threads.net", "threads.com")):
+        tag = soup.find("meta", property="og:description")
+        if tag and tag.get("content"):
+            raw = tag["content"]
+            text = cleaned(raw)
+            _dbg_og(f"📌 SOCIAL OG:DESCRIPTION RAW   -> '{_cap(raw)}'")
+            _dbg_og(f"📌 SOCIAL OG:DESCRIPTION CLEAN -> '{_cap(text)}'")
 
-    # Generic fallback: sanitized page text, but only if it’s real content
-    print("🧹 Using sanitized HTML content")
+            if _valid_content(text) or len(text) <= SHORT_COPY_LEN:
+                _dbg_og(f"✅ PICKED SOCIAL OG:DESCRIPTION ({len(text)} CHARS)")
+                return text
+            else:
+                _dbg_og("⛔ REJECTED SOCIAL OG:DESCRIPTION (NOT VALID)")
+
+    # FALLBACK: SANITIZED PAGE TEXT (LAST RESORT)
+    _dbg_og("🧹 FALLING BACK TO SANITIZED HTML TEXT")
     sanitized = sanitize_html_for_summary(html)
-    return sanitized if _valid_content(sanitized) else ""
+    if _valid_content(sanitized):
+        _dbg_og(f"✅ PICKED SANITIZED HTML ({len(sanitized)} CHARS)")
+        return sanitized
+
+    _dbg_og("⛔ NO VALID TEXT FOUND -> RETURNING EMPTY STRING")
+    return ""
+
+
+# ------------------------------------------------------------
+# IMAGE EXTRACTION
+# ------------------------------------------------------------
+
+
+def extract_og_image(html: str, url: str) -> tuple[str, str | None]:
+    _dbg_og(f"🖼️  EXTRACT_OG_IMAGE URL -> {url}")
+
+    if _is_twitter_url(url):
+        img, msg = next_twitter_fallback()
+        _dbg_og(f"🖼️  TWITTER FALLBACK IMAGE -> '{_cap(img)}'")
+        _dbg_og(f"🖼️  TWITTER FALLBACK MSG -> '{_cap(msg)}'")
+        return img, msg
+
+    try:
+        from .extract import extract_og_tags
+
+        img, title = extract_og_tags(html, url)
+        _dbg_og(f"🖼️  extract_og_tags IMG (CAP) -> '{_cap(img)}'")
+        _dbg_og(f"🖼️  extract_og_tags TITLE (CAP) -> '{_cap(title)}'")
+        if img:
+            return img, None
+    except Exception as e:
+        _dbg_og(f"⚠️  extract_og_tags ERROR -> {e}")
+        pass
+
+    if "threads" in (url or "").lower():
+        img = next_threads_fallback()
+        _dbg_og(f"🖼️  THREADS FALLBACK IMAGE -> '{_cap(img)}'")
+        return img, None
+
+    img, msg = next_weirdlink_pair()
+    _dbg_og(f"🖼️  WEIRDLINK FALLBACK IMAGE -> '{_cap(img)}'")
+    _dbg_og(f"🖼️  WEIRDLINK FALLBACK MSG (CAP) -> '{_cap(msg)}'")
+    return img, msg

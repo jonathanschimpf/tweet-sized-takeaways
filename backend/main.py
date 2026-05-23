@@ -1,4 +1,5 @@
-# ✅ MAIN FASTAPI BACKEND ENTRYPOINT — PEGASUS-LOCKED VERSION
+# backend/main.py
+# ✅ MAIN FASTAPI BACKEND ENTRYPOINT — lean, no length guards
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,36 +9,40 @@ from dotenv import load_dotenv
 
 import os
 from pathlib import Path
-from urllib.parse import urlparse
 
-# ✅ INIT FastAPI
+# ---------- App & static mounts ----------
+
 app = FastAPI()
 
-# ✅ MOUNT PUBLIC IMAGE ASSETS
+# Public assets are served from /images (public/images -> /images)
 app.mount(
     "/images", StaticFiles(directory=os.path.join("public", "images")), name="images"
 )
 
-# ✅ LOAD .env
+# Also expose /public at /static (kept for any existing uses)
+public_path = os.path.join(os.path.dirname(__file__), "..", "public")
+app.mount("/static", StaticFiles(directory=public_path), name="static")
+
+# ---------- Env ----------
 load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env")
 HF_API_TOKEN = os.getenv("HF_API_TOKEN")
 print(f"🔐 Hugging Face token loaded? {'Yes' if HF_API_TOKEN else 'No'}")
 print("✅ .env path:", os.path.abspath(".env"))
 
-# ✅ INTERNAL MODULES
+# ---------- Internal modules ----------
 from .summarizer import (
     fetch_html,
-    extract_og_image,
-    get_best_summary,  # <-- builds strict prompt internally
-    sanitize_html_for_summary,
-    extract_social_content_for_hf,  # <-- finds og:description/og:title or sanitized text
-    get_ordered_threads_fallback,
+    get_best_summary,  # builds strict prompt internally
+    extract_social_content_for_hf,  # picks og:description/og:title or sanitized text
+    extract_og_image,  # returns (og_or_loop_img, weird_quip_if_used | None)
 )
-from .extract import extract_og_tags, extract_paragraph_like_block
-from .blacklist import get_blacklist_category, is_cookie_gated
-from .fallbacks import get_fallback_og
+from .extract import (
+    extract_media_metadata,
+    extract_og_tags,
+    extract_paragraph_like_block,
+)
 
-# ✅ CORS CONFIG
+# ---------- CORS ----------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -49,38 +54,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ STATIC FILES FOR PUBLIC ASSETS
-public_path = os.path.join(os.path.dirname(__file__), "..", "public")
-app.mount("/static", StaticFiles(directory=public_path), name="static")
 
-
-# ✅ HEALTH CHECK
+# ---------- Health ----------
 @app.api_route("/", methods=["GET", "HEAD"])
 def read_root():
     return {"message": "Backend is live"}
 
 
-# ✅ INPUT MODEL
+# ---------- Models ----------
 class URLInput(BaseModel):
     url: str
 
 
-# ✅ TWEET TRIMMER
+# ---------- Helpers ----------
 def trim_to_280(text: str) -> str:
-    return text.strip()[:277] + "..." if len(text.strip()) > 280 else text.strip()
-
-
-# ✅ FALLBACK IMAGE HANDLER
-BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
-
-
-def get_social_fallback(url: str) -> str:
-    hostname = urlparse(url).hostname or ""
-    if "threads.net" in hostname or "threads.com" in hostname:
-        return f"{BASE_URL}{get_ordered_threads_fallback()}"  # ordered Threads cycle
-    if "facebook.com" in hostname:
-        return f"{BASE_URL}/images/og-fallbacks/social.jpg"
-    return f"{BASE_URL}{get_fallback_og('weird')}"
+    text = (text or "").strip()
+    return text[:277] + "..." if len(text) > 280 else text
 
 
 # =========================
@@ -88,79 +77,76 @@ def get_social_fallback(url: str) -> str:
 # =========================
 @app.post("/summarize")
 async def summarize(input: URLInput):
-    print(f"🔵 URL received: {input.url}")
+    url = input.url.strip()
+    print(f"🔵 URL received: {url}")
 
     try:
-        html = await fetch_html(input.url)
+        html = await fetch_html(url)
         print("🟢 HTML fetched successfully")
 
-        # Always compute an image early so we have a fallback ready
-        og_img_extracted = extract_og_image(html)
-        hostname = urlparse(input.url).hostname or ""
-        is_threads = "threads.net" in hostname or "threads.com" in hostname
+        # 1) OG tags
+        og_image_from_tags, og_desc = extract_og_tags(html, url)
+        media = extract_media_metadata(html, url)
 
-        # Prefer author-provided OG description if it looks decent
-        og_image, og_desc = extract_og_tags(html)
-        if og_desc and len(og_desc.strip()) >= 30:
+        # 2) Stable image fallback for THIS call
+        loop_img, fallback_msg = extract_og_image(html, url)
+        final_img = og_image_from_tags or loop_img
+        if final_img and not media.get("poster_image"):
+            media["poster_image"] = final_img
+
+        # 3) If author provided ANY og:description, use it
+        if og_desc and og_desc.strip():
             print("🟠 Using og:description")
-            final_img = (
-                get_social_fallback(input.url)
-                if is_threads
-                else (og_image or og_img_extracted or get_social_fallback(input.url))
-            )
             return {
                 "summary": trim_to_280(og_desc),
                 "used_huggingface": False,
                 "og_image": final_img,
+                "media": media,
             }
 
-        # Next: native paragraph-like scrape (your custom heuristic)
-        native = extract_paragraph_like_block(html)
+        # 4) Next: native paragraph-like scrape (if anything came back)
+        native = (extract_paragraph_like_block(html) or "").strip()
         print(f"🟡 Native text extracted: {native[:300]}")
-        if len(native.strip()) >= 100:
+        if native:
             print("🟠 Using native scrape")
-            final_img = (
-                get_social_fallback(input.url)
-                if is_threads
-                else (og_image or og_img_extracted or get_social_fallback(input.url))
-            )
             return {
                 "summary": trim_to_280(native),
                 "used_huggingface": False,
                 "og_image": final_img,
+                "media": media,
             }
 
-        # Final: Pegasus (META-FIRST input)
-        print("🔁 Falling back to Hugging Face Pegasus")
-        source_text = extract_social_content_for_hf(html, input.url)
-        summary = await get_best_summary(source_text)  # <-- pass meta/source text
-
-        if summary and len(summary.strip()) >= 30:
-            final_img = (
-                get_social_fallback(input.url)
-                if is_threads
-                else (og_image or og_img_extracted or get_social_fallback(input.url))
-            )
-            return {
-                "summary": trim_to_280(summary),
-                "used_huggingface": True,
-                "og_image": final_img,
-            }
-
-        print("🧸 All fallbacks failed — returning generic message.")
-        final_img = get_social_fallback(input.url)
+        # 5) Stop here. /summarize is metadata/native-only; HF is explicit via /summarize/hf.
+        print("🧸 No OG/meta/native text found — returning non-HF fallback.")
         return {
-            "summary": "🧸 Hugging Face couldn't find enough readable text.",
+            "summary": fallback_msg or "There is literally no page text to summarize!",
             "used_huggingface": False,
             "og_image": final_img,
+            "media": media,
         }
 
     except Exception as e:
         print(f"🔥 ERROR in /summarize: {e}")
+        # Show a deterministic image even on exception
+        try:
+            img, fallback_msg = extract_og_image("", url)
+        except Exception:
+            img = "/images/og-fallbacks/weirdlink/weirdlink.jpg"
+            fallback_msg = None
         return {
-            "summary": "❌ An error occurred while summarizing the page.",
+            "summary": fallback_msg or "❌ An error occurred while summarizing the page.",
             "used_huggingface": False,
-            "og_image": get_social_fallback(input.url),
+            "og_image": img,
+            "media": {
+                "platform": "web",
+                "kind": "link",
+                "is_video": False,
+                "is_reel": False,
+                "is_carousel": False,
+                "poster_image": img,
+                "content_type": "",
+                "signals": [],
+            },
         }
 
 
@@ -169,43 +155,63 @@ async def summarize(input: URLInput):
 # =========================
 @app.post("/summarize/hf")
 async def summarize_with_hf(input: URLInput):
-    print(f"🤖 FORCED HF: {input.url}")
+    url = input.url.strip()
+    print(f"🤖 FORCED HF: {url}")
 
     try:
-        html = await fetch_html(input.url)
+        html = await fetch_html(url)
+        media = extract_media_metadata(html, url)
 
-        # Source text for Pegasus (og:description/og:title or sanitized html)
-        source_text = extract_social_content_for_hf(html, input.url)
+        # Choose image + quip once
+        og_img_from_tags, _ = extract_og_tags(html, url)
+        final_img, weird_msg = extract_og_image(html, url)
+        if og_img_from_tags:
+            final_img, weird_msg = og_img_from_tags, None  # OG wins
+        if final_img and not media.get("poster_image"):
+            media["poster_image"] = final_img
 
-        # Retry Pegasus a few times in case the model is cold
+        # Source text for Pegasus
+        source_text = extract_social_content_for_hf(html, url)
+
+        # Try HF a few times; accept WeirdLink default or any non‑empty HF text
         max_retries = 3
         summary = None
         for attempt in range(1, max_retries + 1):
             print(f"🔁 Pegasus attempt {attempt}...")
-            summary = await get_best_summary(source_text)  # <-- NO 'summarize:' prompts
-            if summary and len(summary.strip()) >= 30:
+            summary = await get_best_summary(source_text, default_weird_msg=weird_msg)
+            if summary == weird_msg or (summary and summary.strip()):
                 break
 
         print(f"✅ Pegasus returned after {attempt} attempt(s):\n{summary}\n")
 
-        hostname = urlparse(input.url).hostname or ""
-        is_threads = "threads.net" in hostname or "threads.com" in hostname
-        final_img = (
-            get_social_fallback(input.url)
-            if is_threads
-            else (extract_og_image(html) or get_social_fallback(input.url))
-        )
+        used_hf = not (summary == weird_msg)
 
         return {
             "summary": trim_to_280(summary or "🤷‍♂️ No summary available."),
-            "used_huggingface": True,
+            "used_huggingface": used_hf,
             "og_image": final_img,
+            "media": media,
         }
 
     except Exception as e:
         print(f"💥 FORCED HF ERROR: {e}")
+        try:
+            img, fallback_msg = extract_og_image("", url)
+        except Exception:
+            img = "/images/og-fallbacks/weirdlink/weirdlink.jpg"
+            fallback_msg = None
         return {
-            "summary": "🧸 Hugging Face couldn't read this article right now.",
+            "summary": fallback_msg or "🧸 Hugging Face couldn't read this article right now.",
             "used_huggingface": False,
-            "og_image": get_social_fallback(input.url),
+            "og_image": img,
+            "media": {
+                "platform": "web",
+                "kind": "link",
+                "is_video": False,
+                "is_reel": False,
+                "is_carousel": False,
+                "poster_image": img,
+                "content_type": "",
+                "signals": [],
+            },
         }

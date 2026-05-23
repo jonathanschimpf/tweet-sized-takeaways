@@ -16,12 +16,27 @@ dist-ssr/
 # ─── PYTHON / BACKEND ───
 venv/
 .venv/
+freshvenv/
+freshvenv311/
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
-
+# ─── TEST / DEBUG ARTIFACTS ───
+backend/screenshots/
+backend/attempts_no_longer_in_use/screenshots/
+playwright-report/
+test-results/
+trace.zip
+traces/
+*.trace
+*.har
 
 # ─── ENV / SECRETS ───
 .env
