@@ -131,6 +131,19 @@ WHITESPACE_RE = re.compile(r"\s+")
 # TEXT CLEANING
 # ------------------------------------------------------------
 
+TRAILING_ELLIPSIS_RE = re.compile(r"(?:\s*(?:\.{3,}|…)+\s*)+$")
+TRAILING_PUNCT_RE = re.compile(r"\s+[^\w\s]+$")
+
+
+def end_on_solid_word(text: str) -> str:
+    if not text:
+        return ""
+
+    text = TRAILING_ELLIPSIS_RE.sub("", text).strip()
+    text = TRAILING_PUNCT_RE.sub("", text).strip()
+
+    return text
+
 
 def clean_social_caption(text: str) -> str:
     if not text:
@@ -140,7 +153,6 @@ def clean_social_caption(text: str) -> str:
 
     text = IG_STATS_PREFIX_RE.sub("", text, count=1)
 
-    # STRIP IG PREFIX FIRST
     m = IG_PREFIX_RE.match(text)
     if m:
         _dbg_og(f"🧼 IG_PREFIX_RE MATCH -> '{_cap(m.group(0), 120)}'")
@@ -148,7 +160,6 @@ def clean_social_caption(text: str) -> str:
     else:
         _dbg_og("🧼 IG_PREFIX_RE NO MATCH")
 
-    # THEN STRIP COMMON SOCIAL NOISE
     text = MENTION_RE.sub("", text)
     text = HASHTAG_RE.sub("", text)
     text = LIKED_BY_RE.sub("", text)
@@ -157,15 +168,17 @@ def clean_social_caption(text: str) -> str:
     text = DATE_RE.sub("", text)
 
     text = WHITESPACE_RE.sub(" ", text).strip()
+
     if len(text) >= 2 and text[0] == text[-1] and text[0] in {"'", '"'}:
         text = text[1:-1].strip()
+
+    text = end_on_solid_word(text)
 
     if DEBUG_OG:
         _dbg_og(f"🧼 CLEAN_SOCIAL_CAPTION RAW    -> '{_cap(raw)}'")
         _dbg_og(f"🧼 CLEAN_SOCIAL_CAPTION CLEAN  -> '{_cap(text)}'")
 
     return text
-
 
 # ------------------------------------------------------------
 # FETCH

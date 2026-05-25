@@ -69,7 +69,17 @@ class URLInput(BaseModel):
 # ---------- Helpers ----------
 def trim_to_280(text: str) -> str:
     text = (text or "").strip()
-    return text[:277] + "..." if len(text) > 280 else text
+    junk = ".,;:!?…'\""
+
+    if len(text) <= 280:
+        return text.rstrip(junk)
+
+    cut = text[:280].strip()
+
+    if " " in cut:
+        cut = cut.rsplit(" ", 1)[0]
+
+    return cut.rstrip(junk)
 
 
 # =========================
