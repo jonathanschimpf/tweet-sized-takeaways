@@ -18,7 +18,7 @@ from .fallbacks import (
     next_twitter_fallback,
     next_weirdlink_pair,
 )
-from .pegasusprompt import (
+from .text_cleanup import (
     build_pegasus_prompt,
     enforce_source_vocab,
     trim_to_280,
