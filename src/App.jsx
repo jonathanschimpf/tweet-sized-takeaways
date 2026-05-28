@@ -48,6 +48,7 @@ function App() {
   const [summary, setSummary] = useState("");
   const [ogImage, setOgImage] = useState("");
   const [scrapedText, setScrapedText] = useState("");
+  const [media, setMedia] = useState(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [usedHuggingFace, setUsedHuggingFace] = useState(false);
@@ -57,6 +58,7 @@ function App() {
     setLoading(true);
     setSummary("");
     setOgImage("");
+    setMedia(null);
     setUsedHuggingFace(false);
 
     try {
@@ -79,12 +81,16 @@ function App() {
 
       const data = await response.json();
       console.log("📬 Response:", data);
+      if (data.debug) {
+        console.table(data.debug);
+      }
 
       setSummary(
         data.summary ||
         "🤗 This website doesn't even like Hugging Face — give it a once over and arrive at a summary of your own. 🤷‍♂️"
       );
       if (data.og_image) setOgImage(data.og_image);
+      setMedia(data.media || null);
       if (data.used_huggingface) setUsedHuggingFace(true);
 
       if (!forceHF && data.scraped_text) {
@@ -116,6 +122,8 @@ function App() {
 
   const hasResult = Boolean(ogImage || summary);
   const isThreadsUrl = htmlInput.toLowerCase().includes("threads.");
+  const mediaKind = media?.kind || "link";
+  const mediaPlatform = media?.platform || "unknown";
 
   const handlePreviewError = () => {
     if (isThreadsUrl && !THREADS_IMAGE_FALLBACKS.includes(ogImage)) {
@@ -170,7 +178,9 @@ function App() {
             {hasResult && (
               <div className="result-layout">
                 {ogImage && (
-                  <div className="media-preview preview-card">
+                  <div
+                    className={`media-preview preview-card media-kind-${mediaKind} media-platform-${mediaPlatform}`}
+                  >
                     <img
                       src={ogImage}
                       alt="Preview"

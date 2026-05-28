@@ -504,6 +504,8 @@ button.twitterblue:focus,
   .preview-card {
     width: fit-content;
     max-width: 100%;
+    display: flex;
+    justify-content: center;
     justify-self: center;
   }
 
@@ -513,8 +515,10 @@ button.twitterblue:focus,
 
   .preview-card img {
     width: auto;
+    height: auto;
     max-width: min(100%, 760px);
-    max-height: min(58vh, 620px);
+    max-height: min(72vh, 760px);
+    object-fit: contain;
   }
 
   .summary-card {

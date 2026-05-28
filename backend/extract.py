@@ -68,12 +68,11 @@ def extract_og_tags(html: str, url: str = "") -> Tuple[str, str]:
             ["og:image", "og:image:secure_url", "twitter:image", "twitter:image:src"]
         )
 
-    # Absolutize if needed (relative or protocol‑relative)
-    if img and url:
-        try:
-            img = urljoin(url, img)
-        except Exception:
-            pass
+    if not img and not is_meta_platform:
+        img = _site_icon_from_soup(soup, url)
+
+    if img:
+        img = _absolute_url(url, img)
 
     # Description: try OG then Twitter then standard meta description
     desc = _first_meta_content(["og:description", "twitter:description"])
@@ -340,6 +339,60 @@ def _first_meta_content_from_soup(soup: BeautifulSoup, keys: list[str]) -> str:
             val = tag["content"].strip()
             if val:
                 return val
+    return ""
+
+
+def _base_url_for_join(url: str) -> str:
+    base = (url or "").strip()
+    if not base:
+        return ""
+    if base.startswith("//"):
+        return f"https:{base}"
+    if not re.match(r"^[a-z][a-z0-9+.-]*://", base, re.I):
+        return f"https://{base}"
+    return base
+
+
+def _absolute_url(base_url: str, value: str) -> str:
+    val = (value or "").strip()
+    if not val:
+        return ""
+    if val.startswith("//"):
+        return f"https:{val}"
+
+    base = _base_url_for_join(base_url)
+    try:
+        return urljoin(base, val) if base else val
+    except Exception:
+        return val
+
+
+def _site_icon_from_soup(soup: BeautifulSoup, url: str) -> str:
+    preferred_rels = (
+        ("apple-touch-icon-precomposed",),
+        ("apple-touch-icon",),
+        ("icon",),
+        ("shortcut", "icon"),
+        ("mask-icon",),
+    )
+    links = soup.find_all("link")
+
+    for preferred in preferred_rels:
+        for link in links:
+            href = (link.get("href") or "").strip()
+            raw_rels = link.get("rel") or []
+            if isinstance(raw_rels, str):
+                rels = raw_rels.lower().split()
+            else:
+                rels = [str(rel).lower() for rel in raw_rels]
+
+            if href and all(rel in rels for rel in preferred):
+                return _absolute_url(url, href)
+
+    base = _base_url_for_join(url)
+    parsed = urlparse(base)
+    if parsed.scheme and parsed.netloc:
+        return f"{parsed.scheme}://{parsed.netloc}/favicon.ico"
     return ""
 
 

@@ -37,6 +37,7 @@ from .summarizer import (
     extract_og_image,  # returns (og_or_loop_img, weird_quip_if_used | None)
 )
 from .extract import (
+    detect_platform,
     extract_media_metadata,
     extract_og_tags,
     extract_paragraph_like_block,
@@ -82,6 +83,12 @@ def trim_to_280(text: str) -> str:
     return cut.rstrip(junk)
 
 
+def _debug_payload(**kwargs):
+    debug = {"debug": True}
+    debug.update(kwargs)
+    return debug
+
+
 # =========================
 # MAIN SUMMARIZATION ROUTE
 # =========================
@@ -89,6 +96,7 @@ def trim_to_280(text: str) -> str:
 async def summarize(input: URLInput):
     url = input.url.strip()
     print(f"🔵 URL received: {url}")
+    platform = detect_platform(url)
 
     try:
         html = await fetch_html(url)
@@ -101,8 +109,21 @@ async def summarize(input: URLInput):
         # 2) Stable image fallback for THIS call
         loop_img, fallback_msg = extract_og_image(html, url)
         final_img = og_image_from_tags or loop_img
+        image_source = "og_tags" if og_image_from_tags else "fallback"
         if final_img and not media.get("poster_image"):
             media["poster_image"] = final_img
+
+        debug_base = _debug_payload(
+            url_received=url,
+            platform=platform,
+            html_length=len(html or ""),
+            og_image_from_tags=og_image_from_tags or "",
+            fallback_image=loop_img or "",
+            fallback_message=fallback_msg or "",
+            final_image=final_img or "",
+            image_source=image_source,
+            media_poster_image=media.get("poster_image", ""),
+        )
 
         # 3) If author provided ANY og:description, use it
         if og_desc and og_desc.strip():
@@ -112,6 +133,13 @@ async def summarize(input: URLInput):
                 "used_huggingface": False,
                 "og_image": final_img,
                 "media": media,
+                "debug": {
+                    **debug_base,
+                    "summary_source": "og_description",
+                    "og_description": og_desc,
+                    "native_text_length": None,
+                    "native_text_sample": "",
+                },
             }
 
         # 4) Next: native paragraph-like scrape (if anything came back)
@@ -124,6 +152,13 @@ async def summarize(input: URLInput):
                 "used_huggingface": False,
                 "og_image": final_img,
                 "media": media,
+                "debug": {
+                    **debug_base,
+                    "summary_source": "native_scrape",
+                    "og_description": og_desc or "",
+                    "native_text_length": len(native),
+                    "native_text_sample": native[:500],
+                },
             }
 
         # 5) Stop here. /summarize is metadata/native-only; HF is explicit via /summarize/hf.
@@ -133,6 +168,13 @@ async def summarize(input: URLInput):
             "used_huggingface": False,
             "og_image": final_img,
             "media": media,
+            "debug": {
+                **debug_base,
+                "summary_source": "fallback_message",
+                "og_description": og_desc or "",
+                "native_text_length": 0,
+                "native_text_sample": "",
+            },
         }
 
     except Exception as e:
@@ -147,6 +189,15 @@ async def summarize(input: URLInput):
             "summary": fallback_msg or "❌ An error occurred while summarizing the page.",
             "used_huggingface": False,
             "og_image": img,
+            "debug": _debug_payload(
+                url_received=url,
+                platform=platform,
+                error=str(e),
+                summary_source="exception_fallback",
+                final_image=img,
+                image_source="exception_fallback",
+                fallback_message=fallback_msg or "",
+            ),
             "media": {
                 "platform": "web",
                 "kind": "link",

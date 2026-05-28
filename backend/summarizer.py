@@ -185,8 +185,15 @@ def clean_social_caption(text: str) -> str:
 # ------------------------------------------------------------
 
 
-async def fetch_html(url: str) -> str:
+def _normalize_fetch_url(url: str) -> str:
     url = (url or "").strip()
+    if url and not re.match(r"^[a-z][a-z0-9+.-]*://", url, re.I):
+        return f"https://{url}"
+    return url
+
+
+async def fetch_html(url: str) -> str:
+    url = _normalize_fetch_url(url)
     timeout = aiohttp.ClientTimeout(total=15)
     async with aiohttp.ClientSession(
         timeout=timeout, headers=DEFAULT_HEADERS
